@@ -1,88 +1,26 @@
-#' Construct a Covariance Matrix with Decaying Correlations
+#' Construct Covariance Matrix with Decay
 #'
-#' Constructs a covariance matrix for Difference-in-Differences (DiD) estimates,
-#' assuming that covariances decay over time according to a specified decay function.
-#' The function ensures that the resulting covariance matrix is positive semi-definite (PSD)
-#' by adjusting the decay parameter if necessary.
+#' Constructs a covariance matrix based on provided years, variances, and a decay parameter.
+#' The decay can be either "exponential" or "linear".
 #'
-#' @param years Numeric vector of years corresponding to the estimates.
-#' @param variances Numeric vector of variances for each estimate. Must be non-negative
-#'   and the same length as \code{years}.
-#' @param decay_type Character string specifying the type of decay function to use.
-#'   Supported options are \code{"exponential"} and \code{"linear"}.
-#' @param decay_param Numeric value specifying the decay parameter (\eqn{\lambda}) for
-#'   the decay function. Must be within \code{[min_decay_param, max_decay_param]}.
-#' @param min_decay_param Numeric value specifying the minimum allowable decay parameter.
-#'   Default is \code{0}.
-#' @param max_decay_param Numeric value specifying the maximum allowable decay parameter.
-#'   Default is \code{1}.
-#' @param n_steps Integer specifying the number of steps for adjusting the decay parameter
-#'   to find a positive semi-definite covariance matrix. Default is \code{1000}.
+#' @param years A numeric vector of years.
+#' @param variances A numeric vector of variances corresponding to each year.
+#' @param decay_type A character string specifying the type of decay. Must be either "exponential" or "linear".
+#' @param lambda A non-negative numeric value specifying the decay parameter.
 #'
-#' @return A list containing:
-#' \describe{
-#'   \item{\code{cov_matrix}}{The constructed covariance matrix, which is positive semi-definite.}
-#'   \item{\code{decay_param}}{The decay parameter used to construct the covariance matrix.
-#'     If the initial \code{decay_param} resulted in a non-PSD matrix, this is the adjusted value.}
-#' }
-#' @export
-#'
+#' @return A covariance matrix.
 #' @examples
-#' # Example 1: Using a specified decay parameter (exponential decay)
-#' years <- c(2008, 2009, 2010, 2011)
-#' variances <- c(0.0001, 0.0002, 0.00015, 0.00012)
-#' decay_param <- 0.1
-#' result_exp <- construct_cov_matrix_decay(
-#'   years = years,
-#'   variances = variances,
-#'   decay_type = "exponential",
-#'   decay_param = decay_param
-#' )
-#' print(result_exp$cov_matrix)
-#' print(result_exp$decay_param)
+#' # Example usage with exponential decay
+#' years <- c(2000, 2001, 2002)
+#' variances <- c(1, 1, 1)
+#' cov_matrix <- construct_cov_matrix_decay(years, variances, decay_type = "exponential", lambda = 0.1)
+#' print(cov_matrix)
 #'
-#' # Example 2: Using a specified decay parameter (linear decay)
-#' decay_param <- 0.2
-#' result_lin <- construct_cov_matrix_decay(
-#'   years = years,
-#'   variances = variances,
-#'   decay_type = "linear",
-#'   decay_param = decay_param
-#' )
-#' print(result_lin$cov_matrix)
-#' print(result_lin$decay_param)
-#'
-#' # Example 3: Specified decay parameter resulting in non-PSD matrix (adjusted)
-#' decay_param <- 0.05  # May result in non-PSD matrix
-#' result_adjusted <- construct_cov_matrix_decay(
-#'   years = years,
-#'   variances = variances,
-#'   decay_type = "exponential",
-#'   decay_param = decay_param
-#' )
-#' print(result_adjusted$cov_matrix)
-#' print(result_adjusted$decay_param)
-#'
-#' # Example 4: Perfect correlation (decay_param = 0)
-#' decay_param <- 0
-#' result_perfect <- construct_cov_matrix_decay(
-#'   years = years,
-#'   variances = variances,
-#'   decay_type = "exponential",
-#'   decay_param = decay_param
-#' )
-#' print(result_perfect$cov_matrix)
-#' print(result_perfect$decay_param)
-
-construct_cov_matrix_decay <- function(
-    years,
-    variances,
-    decay_type = 'exponential',
-    decay_param,
-    min_decay_param = 0,
-    max_decay_param = 1,
-    n_steps = 1000  # Number of steps for adjusting decay_param
-) {
+#' # Example usage with linear decay
+#' cov_matrix_linear <- construct_cov_matrix_decay(years, variances, decay_type = "linear", lambda = 0.1)
+#' print(cov_matrix_linear)
+#' @export
+construct_cov_matrix_decay <- function(years, variances, decay_type = "exponential", lambda) {
   # Input validation
   if (length(years) != length(variances)) {
     stop("The lengths of years and variances must match.")
@@ -90,63 +28,39 @@ construct_cov_matrix_decay <- function(
   if (any(variances < 0)) {
     stop("Variances must be non-negative.")
   }
-  if (!decay_type %in% c('exponential', 'linear')) {
-    stop("Supported decay types are 'exponential' and 'linear'.")
+  if (!is.numeric(lambda) || length(lambda) != 1 || is.na(lambda) || lambda < 0) {
+    stop("lambda must be a non-negative numeric value.")
   }
-  if (!is.numeric(decay_param) || decay_param < min_decay_param || decay_param > max_decay_param) {
-    stop("decay_param must be numeric and within [min_decay_param, max_decay_param].")
-  }
-  if (min_decay_param < 0 || max_decay_param < min_decay_param) {
-    stop("Invalid decay parameter bounds.")
-  }
-  if (!is.numeric(n_steps) || n_steps <= 0) {
-    stop("n_steps must be a positive integer.")
+  if (!decay_type %in% c("exponential", "linear")) {
+    stop("decay_type must be either 'exponential' or 'linear'.")
   }
 
   # Compute time differences
-  time_diff <- outer(years, years, FUN = function(x, y) abs(x - y))
+  time_diff_matrix <- as.matrix(dist(years, diag = TRUE, upper = TRUE))
 
-  # Function to compute correlation matrix
-  compute_corr_matrix <- function(lambda) {
-    if (decay_type == 'exponential') {
-      rho_mat <- exp(-lambda * time_diff)
-    } else if (decay_type == 'linear') {
-      rho_mat <- 1 - lambda * time_diff
-      rho_mat[rho_mat < 0] <- 0  # Set negative correlations to zero
-    }
-    diag(rho_mat) <- 1  # Ensure diagonal elements are 1
-    return(rho_mat)
+  # Compute correlation matrix based on decay type
+  if (decay_type == "exponential") {
+    corr_matrix <- exp(-lambda * time_diff_matrix)
+  } else if (decay_type == "linear") {
+    corr_matrix <- pmax(1 - lambda * time_diff_matrix, 0)
   }
 
-  # Function to check positive semi-definiteness
-  is_psd <- function(cov_matrix) {
-    eigenvalues <- eigen(cov_matrix, symmetric = TRUE, only.values = TRUE)$values
-    all(eigenvalues >= -1e-8)
-  }
-
-  # Try the specified decay_param
-  rho_mat <- compute_corr_matrix(decay_param)
+  # Construct the covariance matrix
   sd_vec <- sqrt(variances)
-  cov_matrix <- rho_mat * (sd_vec %o% sd_vec)
+  cov_matrix <- corr_matrix * (sd_vec %o% sd_vec)
 
-  if (is_psd(cov_matrix)) {
-    return(list(cov_matrix = cov_matrix, decay_param = decay_param))
-  } else {
-    # Adjust decay_param to find the closest PSD value
-    # Generate a sequence of decay parameters around the initial value
-    delta <- (max_decay_param - min_decay_param) / n_steps
-    lambda_values <- seq(min_decay_param, max_decay_param, by = delta)
-    # Find the closest lambda to the initial decay_param
-    lambda_values <- lambda_values[order(abs(lambda_values - decay_param))]
-
-    for (lambda_candidate in lambda_values) {
-      rho_mat <- compute_corr_matrix(lambda_candidate)
-      cov_matrix <- rho_mat * (sd_vec %o% sd_vec)
-      if (is_psd(cov_matrix)) {
-        return(list(cov_matrix = cov_matrix, decay_param = lambda_candidate))
-      }
-    }
-
-    stop("Cannot find a decay parameter that results in a positive semi-definite covariance matrix within the specified range.")
+  # Check if the covariance matrix is PSD
+  if (!is_psd(cov_matrix)) {
+    stop("The specified parameters result in a covariance matrix that is not positive semi-definite.")
   }
+
+  # Return the covariance matrix
+  return(cov_matrix)
 }
+
+# Function to check positive semi-definiteness
+is_psd <- function(matrix) {
+  eigenvalues <- eigen(matrix, symmetric = TRUE, only.values = TRUE)$values
+  all(eigenvalues >= -1e-8)
+}
+
