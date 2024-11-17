@@ -14,7 +14,7 @@ construct_cov_matrix(years, variances, rho)
 \item{rho}{A numeric value between -1 and 1 specifying the correlation coefficient to be used for all off-diagonal elements.}
 }
 \value{
-A list containing the covariance matrix (\code{cov_matrix}) and the \code{rho} used.
+A covariance matrix.
 }
 \description{
 Constructs a covariance matrix based on provided years, variances, and a specified correlation coefficient (rho).
@@ -23,7 +23,6 @@ Constructs a covariance matrix based on provided years, variances, and a specifi
 # Example usage
 years <- c(2008, 2009, 2010)
 variances <- c(0.0001, 0.0002, 0.00015)
-result <- construct_cov_matrix(years, variances, rho = 0.5)
-print(result$cov_matrix)
-print(result$rho)
+cov_matrix <- construct_cov_matrix(years, variances, rho = 0.5)
+print(cov_matrix)
 }

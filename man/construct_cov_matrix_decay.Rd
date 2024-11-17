@@ -31,10 +31,14 @@ The decay can be either "exponential" or "linear".
 # Example usage with exponential decay
 years <- c(2000, 2001, 2002)
 variances <- c(1, 1, 1)
-cov_matrix <- construct_cov_matrix_decay(years, variances, decay_type = "exponential", lambda = 0.1)
+cov_matrix <- construct_cov_matrix_decay(years, variances,
+                                         decay_type = "exponential",
+                                         lambda = 0.1)
 print(cov_matrix)
 
 # Example usage with linear decay
-cov_matrix_linear <- construct_cov_matrix_decay(years, variances, decay_type = "linear", lambda = 0.1)
+cov_matrix_linear <- construct_cov_matrix_decay(years, variances,
+                                                decay_type = "linear",
+                                                lambda = 0.1)
 print(cov_matrix_linear)
 }

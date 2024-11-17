@@ -2,3 +2,4 @@
 
 export(construct_cov_matrix)
 export(construct_cov_matrix_decay)
+importFrom(stats,dist)

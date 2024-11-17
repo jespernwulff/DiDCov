@@ -6,14 +6,13 @@
 #' @param variances A numeric vector of variances corresponding to each year.
 #' @param rho A numeric value between -1 and 1 specifying the correlation coefficient to be used for all off-diagonal elements.
 #'
-#' @return A list containing the covariance matrix (`cov_matrix`) and the `rho` used.
+#' @return A covariance matrix.
 #' @examples
 #' # Example usage
 #' years <- c(2008, 2009, 2010)
 #' variances <- c(0.0001, 0.0002, 0.00015)
-#' result <- construct_cov_matrix(years, variances, rho = 0.5)
-#' print(result$cov_matrix)
-#' print(result$rho)
+#' cov_matrix <- construct_cov_matrix(years, variances, rho = 0.5)
+#' print(cov_matrix)
 #' @export
 construct_cov_matrix <- function(years, variances, rho) {
   # Input validation
@@ -41,8 +40,8 @@ construct_cov_matrix <- function(years, variances, rho) {
     stop("The specified rho results in a covariance matrix that is not positive semi-definite.")
   }
 
-  # Return the covariance matrix and rho used
-  return(list(cov_matrix = cov_matrix, rho = rho))
+  # Return the covariance matrix
+  return(cov_matrix)
 }
 
 # Function to check positive semi-definiteness
@@ -50,5 +49,6 @@ is_psd <- function(matrix) {
   eigenvalues <- eigen(matrix, symmetric = TRUE, only.values = TRUE)$values
   all(eigenvalues >= -1e-8)
 }
+
 
 
