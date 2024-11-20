@@ -13,7 +13,7 @@
 #'   \item{\code{years}}{A numeric vector of years.}
 #'   \item{\code{variances}}{A numeric vector of variances computed from the confidence intervals.}
 #' }
-#' #' @importFrom stats qnorm
+#' @importFrom stats qnorm
 #' @examples
 #' # Example data
 #' years <- c(2008, 2009, 2010)
