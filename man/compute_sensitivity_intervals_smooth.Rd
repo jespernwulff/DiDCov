@@ -16,7 +16,7 @@ compute_sensitivity_intervals_smooth(
   decay_types = c("exponential", "linear"),
   lambda_values = seq(0, 1, by = 0.1),
   ci_level = 0.95,
-  Mvec = 0.01,
+  Mvec = 0.02,
   ...
 )
 }
