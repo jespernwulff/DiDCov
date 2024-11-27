@@ -30,6 +30,7 @@
 #' }
 #' @importFrom HonestDiD createSensitivityResults_relativeMagnitudes
 #' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom Matrix nearPD
 #' @examples
 #' \donttest{
 #' # Simplified example
@@ -132,6 +133,9 @@ compute_sensitivity_intervals <- function(
         # Construct covariance matrix
         sigma <- construct_cov_matrix(years, variances, rho)
 
+        # Adjust sigma to be positive semi-definite
+        sigma <- as.matrix(nearPD(sigma)$mat)
+
         # Check if sigma is positive semi-definite
         if (!is_positive_semi_definite(sigma)) {
           # Log invalid parameter value
@@ -172,6 +176,8 @@ compute_sensitivity_intervals <- function(
         for (lambda in lambda_values) {
           # Construct covariance matrix
           sigma <- construct_cov_matrix_decay(years, variances, decay_type = decay_type, lambda = lambda)
+
+          sigma <- as.matrix(nearPD(sigma)$mat)
 
           # Check if sigma is positive semi-definite
           if (!is_positive_semi_definite(sigma)) {
