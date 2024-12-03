@@ -24,7 +24,6 @@
 #' @importFrom stats qnorm
 #' @importFrom HonestDiD createSensitivityResults
 #' @importFrom utils txtProgressBar setTxtProgressBar
-#' @importFrom Matrix nearPD
 #' @export
 compute_sensitivity_intervals_smooth <- function(
     betahat,
@@ -91,9 +90,6 @@ compute_sensitivity_intervals_smooth <- function(
         # Construct covariance matrix
         sigma <- construct_cov_matrix(years, variances, rho)
 
-        # Adjust sigma to be positive semi-definite
-        sigma <- as.matrix(nearPD(sigma)$mat)
-
         # Ensure sigma dimensions match betahat
         T <- length(betahat)
         if (!all(dim(sigma) == c(T, T))) {
@@ -134,9 +130,6 @@ compute_sensitivity_intervals_smooth <- function(
         for (lambda in lambda_values) {
           # Construct covariance matrix
           sigma <- construct_cov_matrix_decay(years, variances, decay_type = decay_type, lambda = lambda)
-
-          # Adjust sigma to be positive semi-definite
-          sigma <- as.matrix(Matrix::nearPD(sigma)$mat)
 
           # Ensure sigma dimensions match betahat
           T <- length(betahat)
