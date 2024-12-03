@@ -239,13 +239,13 @@ compute_sensitivity_intervals <- function(
     narrowest_interval <- data.frame()
   }
 
-  # Optionally, inform the user about invalid parameter values
+  # Inform the user about invalid parameter values
   if (length(invalid_params) > 0) {
     warning(sprintf(
       "Covariance matrices were not positive semi-definite for some parameter values. %d cases were skipped.",
       length(invalid_params)
     ))
-    # You can also return invalid_params as part of the result if desired
+
   }
 
   # Return list
