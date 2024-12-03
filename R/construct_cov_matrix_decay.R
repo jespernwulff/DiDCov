@@ -10,6 +10,7 @@
 #'
 #' @return A covariance matrix.
 #' @importFrom stats dist
+#' @importFrom Matrix nearPD
 #' @examples
 #' # Example usage with exponential decay
 #' years <- c(2000, 2001, 2002)
@@ -54,18 +55,12 @@ construct_cov_matrix_decay <- function(years, variances, decay_type = "exponenti
   sd_vec <- sqrt(variances)
   cov_matrix <- corr_matrix * (sd_vec %o% sd_vec)
 
-  # Check if the covariance matrix is PSD
-  if (!is_psd(cov_matrix)) {
-    stop("The specified parameters result in a covariance matrix that is not positive semi-definite.")
-  }
+  # Adjust sigma to be positive semi-definite
+  cov_matrix <- as.matrix(nearPD(cov_matrix)$mat)
 
   # Return the covariance matrix
   return(cov_matrix)
 }
 
-# Function to check positive semi-definiteness
-is_psd <- function(matrix) {
-  eigenvalues <- eigen(matrix, symmetric = TRUE, only.values = TRUE)$values
-  all(eigenvalues >= -1e-8)
-}
+
 

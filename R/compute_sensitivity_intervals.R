@@ -133,9 +133,6 @@ compute_sensitivity_intervals <- function(
         # Construct covariance matrix
         sigma <- construct_cov_matrix(years, variances, rho)
 
-        # Adjust sigma to be positive semi-definite
-        sigma <- as.matrix(nearPD(sigma)$mat)
-
         # Check if sigma is positive semi-definite
         if (!is_positive_semi_definite(sigma)) {
           # Log invalid parameter value

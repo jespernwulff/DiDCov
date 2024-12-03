@@ -7,6 +7,7 @@
 #' @param rho A numeric value between -1 and 1 specifying the correlation coefficient to be used for all off-diagonal elements.
 #'
 #' @return A covariance matrix.
+#' @importFrom Matrix nearPD
 #' @examples
 #' # Example usage
 #' years <- c(2008, 2009, 2010)
@@ -35,20 +36,14 @@ construct_cov_matrix <- function(years, variances, rho) {
   sd_vec <- sqrt(variances)
   cov_matrix <- corr_matrix * (sd_vec %o% sd_vec)
 
-  # Check if the covariance matrix is PSD
-  if (!is_psd(cov_matrix)) {
-    stop("The specified rho results in a covariance matrix that is not positive semi-definite.")
-  }
+  # Adjust sigma to be positive semi-definite
+  cov_matrix <- as.matrix(nearPD(cov_matrix)$mat)
 
   # Return the covariance matrix
   return(cov_matrix)
 }
 
-# Function to check positive semi-definiteness
-is_psd <- function(matrix) {
-  eigenvalues <- eigen(matrix, symmetric = TRUE, only.values = TRUE)$values
-  all(eigenvalues >= -1e-8)
-}
+
 
 
 
