@@ -1,6 +1,6 @@
 #' Summary Method for Sensitivity Intervals
 #'
-#' Provides a concise summary of the results from `compute_sensitivity_intervals`.
+#' Provides a concise summary of the results from `compute_sensitivity_intervals` and `compute_sensitivity_intervals_smooth`.
 #'
 #' @param object An object of class `sensitivity_intervals`.
 #' @param ... Additional arguments (currently unused).
