@@ -15,5 +15,5 @@
 Prints a summary to the console.
 }
 \description{
-Provides a concise summary of the results from \code{compute_sensitivity_intervals} and \code{compute_sensitivity_intervals_smooth}.
+Provides a concise summary of the results from \code{compute_sensitivity_intervals}.
 }
