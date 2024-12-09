@@ -231,17 +231,11 @@ compute_sensitivity_intervals <- function(
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, ]
 
-    # Calculate summary statistics
-    average_width <- mean(combined_results$interval_width, na.rm = TRUE)
-    sd_width <- sd(combined_results$interval_width, na.rm = TRUE)
-
   } else {
     warning("No valid intervals computed. All covariance matrices were not positive semi-definite.")
     combined_results <- data.frame()
     widest_interval <- data.frame()
     narrowest_interval <- data.frame()
-    average_width <- NA
-    sd_width <- NA
   }
 
   # Inform the user about invalid parameter values
@@ -257,9 +251,7 @@ compute_sensitivity_intervals <- function(
   result <- list(
     widest_interval = widest_interval,
     narrowest_interval = narrowest_interval,
-    all_intervals = combined_results,
-    average_width = average_width,
-    sd_width = sd_width
+    all_intervals = combined_results
   )
 
   class(result) <- "sensitivity_intervals"

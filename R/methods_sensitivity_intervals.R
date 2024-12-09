@@ -11,6 +11,10 @@ summary.sensitivity_intervals <- function(object, ...) {
     stop("The input object is not of class 'sensitivity_intervals'.")
   }
 
+  # Calculate summary statistics
+  average_width <- mean(object$all_intervals$interval_width, na.rm = TRUE)
+  sd_width <- sd(object$all_intervals$interval_width, na.rm = TRUE)
+
   cat("Sensitivity Interval Summary:\n")
   cat("----------------------------------------------------\n")
   cat("Widest Interval:\n")
@@ -20,8 +24,8 @@ summary.sensitivity_intervals <- function(object, ...) {
   print(object$narrowest_interval)
   cat("\n")
 
-  avg <- round(object$average_width, 4)
-  sdv <- round(object$sd_width, 4)
+  avg <- round(average_width, 4)
+  sdv <- round(sd_width, 4)
   cat(sprintf("Average Interval Width: %.4f (%.4f)\n", avg, sdv))
   cat("----------------------------------------------------\n")
 }
