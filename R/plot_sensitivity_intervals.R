@@ -36,7 +36,7 @@ plot.sensitivity_intervals <- function(x, ...) {
   p <- ggplot(plot_data, aes(x = beta, y = y_pos)) +
     # Plot horizontal intervals only
     geom_errorbarh(aes(xmin = lower, xmax = upper, color = interval_type),
-                   height = 0.3, size = 0.8) +
+                   height = 0.3, linewidth = 0.8) +
     # Add a vertical line at zero
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
     # Manual colors: two intervals, two colors
