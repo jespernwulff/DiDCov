@@ -15,10 +15,13 @@ summary.sensitivity_intervals <- function(object, ...) {
   cat("----------------------------------------------------\n")
   cat("Widest Interval:\n")
   print(object$widest_interval)
+
   cat("\nNarrowest Interval:\n")
   print(object$narrowest_interval)
-  cat("\nSummary Statistics for Interval Widths:\n")
-  cat(sprintf("Average Interval Width: %.4f\n", object$average_width))
-  cat(sprintf("Standard Deviation of Interval Widths: %.4f\n", object$sd_width))
+  cat("\n")
+
+  avg <- round(object$average_width, 4)
+  sdv <- round(object$sd_width, 4)
+  cat(sprintf("Average Interval Width: %.4f (%.4f)\n", avg, sdv))
   cat("----------------------------------------------------\n")
 }
