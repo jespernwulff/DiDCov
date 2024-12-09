@@ -21,7 +21,7 @@
 #'   - `narrowest_interval`: The interval with the narrowest width.
 #'   - `all_intervals`: A data frame containing all computed intervals.
 #'
-#' @importFrom stats qnorm
+#' @importFrom stats sd
 #' @importFrom HonestDiD createSensitivityResults
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
@@ -169,8 +169,7 @@ compute_sensitivity_intervals_smooth <- function(
 
   # Combine results into a single data frame
   if (length(intervals_list) > 0) {
-    # Combine the results into a data frame
-    combined_results <- do.call(rbind, lapply(intervals_list, as.data.frame))
+    combined_results <- do.call(rbind, intervals_list)
     # Calculate interval widths
     combined_results$interval_width <- combined_results$ub - combined_results$lb
 
@@ -181,11 +180,18 @@ compute_sensitivity_intervals_smooth <- function(
     # Find narrowest interval
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, ]
+
+    # Calculate summary statistics
+    average_width <- mean(combined_results$interval_width, na.rm = TRUE)
+    sd_width <- sd(combined_results$interval_width, na.rm = TRUE)
+
   } else {
     warning("No valid intervals computed. All covariance matrices were not positive semi-definite.")
     combined_results <- data.frame()
     widest_interval <- data.frame()
     narrowest_interval <- data.frame()
+    average_width <- NA
+    sd_width <- NA
   }
 
   # Optionally, inform the user about invalid parameter values
@@ -197,10 +203,16 @@ compute_sensitivity_intervals_smooth <- function(
     # You can also return invalid_params as part of the result if desired
   }
 
-  # Return list
-  return(list(
+  # Create a custom object with class
+  result <- list(
     widest_interval = widest_interval,
     narrowest_interval = narrowest_interval,
-    all_intervals = combined_results
-  ))
+    all_intervals = combined_results,
+    average_width = average_width,
+    sd_width = sd_width
+  )
+
+  class(result) <- "sensitivity_intervals"
+
+  return(result)
 }
