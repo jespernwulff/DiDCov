@@ -3,12 +3,30 @@ utils::globalVariables(c("y_pos", "lower", "upper", "interval_type"))
 
 #' Plot Method for Sensitivity Intervals
 #'
-#' Creates a simple forest plot showing only the widest and narrowest intervals.
-#' No points, no title, and just two intervals displayed in a clean, publication-ready style.
+#' Creates a simple forest plot showing only the widest and narrowest intervals computed using `compute_sensitivity_intervals` or `compute_sensitivity_intervals_smooth`
 #'
 #' @param x An object of class `sensitivity_intervals`.
 #' @param ... Additional arguments (currently unused).
 #' @return A ggplot object.
+#' @examples
+#' # Define simple data example
+#' ub <- c(-0.002, 0.015)
+#' lb <- c(-0.012, 0.0065)
+#' beta <- c(-0.007, 0.011)
+#' years <- 1:2
+#'
+#' # Compute the sensitivity intervals
+#' bounds_paper <- compute_sensitivity_intervals(
+#'   betahat = beta,
+#'   ci_lower = lb,
+#'   ci_upper = ub,
+#'   years = years,
+#'   numPrePeriods = 1,
+#'   numPostPeriods = 1
+#' )
+#'
+#' # Create a forest-style plot of the widest and narrowest intervals
+#' plot(bounds_paper)
 #' @export
 plot.sensitivity_intervals <- function(x, ...) {
   if (!inherits(x, "sensitivity_intervals")) {
