@@ -15,7 +15,11 @@
 Prints a summary to the console.
 }
 \description{
-Provides a concise summary of the results from \code{compute_sensitivity_intervals} or \code{compute_sensitivity_intervals_smooth}
+Provides a concise summary of the results from \code{compute_sensitivity_intervals} or \code{compute_sensitivity_intervals_smooth}.
+}
+\details{
+If multiple values of Mbar (for \code{compute_sensitivity_intervals}) or M (for \code{compute_sensitivity_intervals_smooth}) are provided,
+the summary will report the widest and narrowest intervals for each distinct Mbar/M value.
 }
 \examples{
 # Define simple data
