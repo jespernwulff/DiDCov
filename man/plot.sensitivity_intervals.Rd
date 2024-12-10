@@ -15,7 +15,15 @@
 A ggplot object.
 }
 \description{
-Creates a simple forest plot showing only the widest and narrowest intervals computed using \code{compute_sensitivity_intervals} or \code{compute_sensitivity_intervals_smooth}
+Creates a simple forest plot showing only the widest and narrowest intervals computed using
+\code{compute_sensitivity_intervals} or \code{compute_sensitivity_intervals_smooth}.
+}
+\details{
+If multiple values of \code{Mbar} are present in the results, this function will:
+\itemize{
+\item Identify the widest and narrowest intervals for each \code{Mbar} value.
+\item Stack them vertically by using facets (one facet per \code{Mbar}), sharing the same x-axis scale.
+}
 }
 \examples{
 # Define simple data example
