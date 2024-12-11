@@ -13,11 +13,11 @@
 #' @param method A character string specifying the covariance matrix construction method.
 #'   Must be one of "all", "constant", or "decay". Default is "all".
 #' @param rho_values A numeric vector of rho values to use when method is "constant" or "all".
-#'   Default is \code{seq(0, 1, by = 0.1)}.
+#'   Default is \code{c(0, 0.3, 0.5, 0.8)}.
 #' @param decay_types A character vector specifying decay types when method is "decay" or "all".
 #'   Possible values are "exponential" and "linear". Default is \code{c("exponential", "linear")}.
 #' @param lambda_values A numeric vector of lambda values to use when method is "decay" or "all".
-#'   Default is \code{seq(0, 1, by = 0.1)}.
+#'   Default is \code{c(0.1, 0.2, 0.5, 1)}.
 #' @param ci_level A numeric value between 0 and 1 indicating the confidence level of the confidence intervals. Default is \code{0.95}.
 #' @param Mbarvec A numeric vector of values for Mbar to be used in the `HonestDiD` function. Default is \code{c(1)}.
 #' @param ... Additional arguments to pass to \code{HonestDiD::createSensitivityResults_relativeMagnitudes}.
@@ -33,7 +33,7 @@
 #' @importFrom stats sd
 #' @examples
 #' \donttest{
-#' # Simplified example
+#' # Simple example
 #' years <- c(2008, 2009, 2010)
 #' betahat <- c(0.05, 0.06, 0.07)
 #' ci_lower <- c(0.02, 0.03, 0.04)
@@ -66,9 +66,9 @@ compute_sensitivity_intervals <- function(
     numPrePeriods,
     numPostPeriods,
     method = "all",
-    rho_values = seq(0, 1, by = 0.1),
+    rho_values = c(0, 0.3, 0.5, 0.8),
     decay_types = c("exponential", "linear"),
-    lambda_values = seq(0, 1, by = 0.1),
+    lambda_values = c(0.1, 0.2, 0.5, 1),
     ci_level = 0.95,
     Mbarvec = c(1),
     ...

@@ -12,9 +12,9 @@ compute_sensitivity_intervals_smooth(
   numPrePeriods,
   numPostPeriods,
   method = "all",
-  rho_values = seq(0, 1, by = 0.1),
+  rho_values = c(0, 0.3, 0.5, 0.8),
   decay_types = c("exponential", "linear"),
-  lambda_values = seq(0, 1, by = 0.1),
+  lambda_values = c(0.1, 0.2, 0.5, 1),
   ci_level = 0.95,
   Mvec = 0.02,
   ...
@@ -35,11 +35,11 @@ compute_sensitivity_intervals_smooth(
 
 \item{method}{Character string specifying the method to use: "constant", "decay", or "all". Defaults to "all".}
 
-\item{rho_values}{Numeric vector of rho values to use for the "constant" method. Defaults to \code{seq(0, 1, by = 0.1)}.}
+\item{rho_values}{Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.}
 
 \item{decay_types}{Character vector specifying decay types for the "decay" method. Defaults to \code{c("exponential", "linear")}.}
 
-\item{lambda_values}{Numeric vector of lambda values to use for the "decay" method. Defaults to \code{seq(0, 1, by = 0.1)}.}
+\item{lambda_values}{Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.}
 
 \item{ci_level}{Numeric value specifying the confidence level. Defaults to \code{0.95}.}
 
