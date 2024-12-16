@@ -32,7 +32,7 @@ compute_sensitivity_intervals_smooth <- function(
     years,
     numPrePeriods,
     numPostPeriods,
-    method = "all",
+    method = "constant",
     rho_values = c(0, 0.3, 0.5, 0.8),
     decay_types = c("exponential", "linear"),
     lambda_values = c(0.1, 0.2, 0.5, 1),
