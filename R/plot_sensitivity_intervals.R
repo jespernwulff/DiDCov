@@ -113,7 +113,7 @@ plot.sensitivity_intervals <- function(x, ...) {
     # Adjust y-axis: label intervals, no axis title needed
     scale_y_continuous(
       breaks = c(1, 2),
-      labels = c("Narrowest Interval", "Widest Interval"),
+      labels = c("Widest Interval", "Narrowest Interval"),
       name = NULL
     ) +
     # Keep the same x-axis scale for all facets
