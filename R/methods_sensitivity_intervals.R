@@ -13,14 +13,12 @@
 #' ub <- c(-0.002, 0.015)
 #' lb <- c(-0.012, 0.0065)
 #' beta <- c(-0.007, 0.011)
-#' years <- 1:2
 #'
 #' # Compute the sensitivity intervals
 #' bounds_paper <- compute_sensitivity_intervals(
 #'   betahat = beta,
 #'   ci_lower = lb,
 #'   ci_upper = ub,
-#'   years = years,
 #'   numPrePeriods = 1,
 #'   numPostPeriods = 1
 #' )

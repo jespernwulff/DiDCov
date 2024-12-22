@@ -1,4 +1,5 @@
 #' @importFrom ggplot2 ggplot aes geom_errorbarh geom_vline scale_color_manual scale_y_continuous coord_cartesian labs theme_classic theme element_text margin facet_wrap
+#' @importFrom stats as.formula
 utils::globalVariables(c("y_pos", "lower", "upper", "interval_type", "Mbar", "M"))
 
 #' Plot Method for Sensitivity Intervals

@@ -7,7 +7,6 @@
 #' @param betahat A numeric vector of coefficients (effect sizes) for each time period.
 #' @param ci_lower A numeric vector of lower bounds of the confidence intervals corresponding to each time period.
 #' @param ci_upper A numeric vector of upper bounds of the confidence intervals corresponding to each time period.
-#' @param years A numeric vector of years corresponding to the coefficients.
 #' @param numPrePeriods An integer specifying the number of pre-treatment periods.
 #' @param numPostPeriods An integer specifying the number of post-treatment periods.
 #' @param method A character string specifying the covariance matrix construction method.
@@ -34,7 +33,6 @@
 #' @examples
 #' \donttest{
 #' # Simple example
-#' years <- c(2008, 2009, 2010)
 #' betahat <- c(0.05, 0.06, 0.07)
 #' ci_lower <- c(0.02, 0.03, 0.04)
 #' ci_upper <- c(0.08, 0.09, 0.10)
@@ -46,7 +44,6 @@
 #'   betahat = betahat,
 #'   ci_lower = ci_lower,
 #'   ci_upper = ci_upper,
-#'   years = years,
 #'   numPrePeriods = numPrePeriods,
 #'   numPostPeriods = numPostPeriods,
 #'   method = "constant",
@@ -62,10 +59,9 @@ compute_sensitivity_intervals <- function(
     betahat,
     ci_lower,
     ci_upper,
-    years,
     numPrePeriods,
     numPostPeriods,
-    method = "constant",
+    method = "all",
     rho_values = c(0, 0.3, 0.5, 0.8),
     decay_types = c("exponential", "linear"),
     lambda_values = c(0.1, 0.2, 0.5, 1),
@@ -73,10 +69,13 @@ compute_sensitivity_intervals <- function(
     Mbarvec = c(1),
     ...
 ) {
+  # Define the time index internally
+  years <- seq_along(betahat)
+
   # Input validation
   n <- length(betahat)
-  if (length(ci_lower) != n || length(ci_upper) != n || length(years) != n) {
-    stop("All input vectors (betahat, ci_lower, ci_upper, years) must have the same length.")
+  if (length(ci_lower) != n || length(ci_upper) != n) {
+    stop("betahat, ci_lower, and ci_upper must all be the same length.")
   }
   if (any(ci_upper < ci_lower)) {
     stop("Each element of ci_upper must be greater than or equal to the corresponding element of ci_lower.")
@@ -94,7 +93,6 @@ compute_sensitivity_intervals <- function(
   if (numPrePeriods + numPostPeriods != n) {
     stop("The sum of numPrePeriods and numPostPeriods must equal the length of betahat.")
   }
-
   if (!method %in% c("all", "constant", "decay")) {
     stop("method must be one of 'all', 'constant', or 'decay'.")
   }
@@ -128,7 +126,7 @@ compute_sensitivity_intervals <- function(
   # Loop over methods
   for (current_method in methods_to_run) {
     if (current_method == "constant") {
-      # [Validation for rho_values remains the same]
+      # (Optional) Validate rho_values here if desired
       for (rho in rho_values) {
         # Construct covariance matrix
         sigma <- construct_cov_matrix(years, variances, rho)
@@ -168,7 +166,7 @@ compute_sensitivity_intervals <- function(
         setTxtProgressBar(pb, progress_counter)
       }
     } else if (current_method == "decay") {
-      # [Validation for decay_types and lambda_values remains the same]
+      # (Optional) Validate decay_types and lambda_values here if desired
       for (decay_type in decay_types) {
         for (lambda in lambda_values) {
           # Construct covariance matrix
@@ -230,7 +228,6 @@ compute_sensitivity_intervals <- function(
     # Find narrowest interval
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, ]
-
   } else {
     warning("No valid intervals computed. All covariance matrices were not positive semi-definite.")
     combined_results <- data.frame()
@@ -244,7 +241,6 @@ compute_sensitivity_intervals <- function(
       "Covariance matrices were not positive semi-definite for some parameter values. %d cases were skipped.",
       length(invalid_params)
     ))
-
   }
 
   # Create a custom object with class

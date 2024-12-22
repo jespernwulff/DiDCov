@@ -1,13 +1,12 @@
 test_that("compute_sensitivity_intervals returns expected outputs quickly", {
   # Simplified test data
-  years <- c(2008, 2009)
   betahat <- c(0.05, 0.06)
   ci_lower <- c(0.02, 0.03)
   ci_upper <- c(0.08, 0.09)
   numPrePeriods <- 1
   numPostPeriods <- 1
 
-  # Use a minimal parameter grid to keep test fast
+  # Use a minimal parameter grid to keep the test fast
   rho_values <- c(0, 0.5)
   lambda_values <- c(0, 0.5)
 
@@ -18,7 +17,6 @@ test_that("compute_sensitivity_intervals returns expected outputs quickly", {
     betahat = betahat,
     ci_lower = ci_lower,
     ci_upper = ci_upper,
-    years = years,
     numPrePeriods = numPrePeriods,
     numPostPeriods = numPostPeriods,
     method = "constant",
@@ -45,3 +43,4 @@ test_that("compute_sensitivity_intervals returns expected outputs quickly", {
   # Check that intervals are correctly computed
   expect_true(nrow(result$all_intervals) > 0)
 })
+
