@@ -5,21 +5,22 @@
 #' @param betahat Numeric vector of effect size estimates.
 #' @param ci_lower Numeric vector of lower bounds of confidence intervals.
 #' @param ci_upper Numeric vector of upper bounds of confidence intervals.
-#' @param years Numeric vector of years corresponding to the effect sizes.
 #' @param numPrePeriods Integer indicating the number of pre-treatment periods.
 #' @param numPostPeriods Integer indicating the number of post-treatment periods.
 #' @param method Character string specifying the method to use: "constant", "decay", or "all". Defaults to "all".
-#' @param rho_values Numeric vector of rho values to use for the "constant" method. Defaults to `c(0, 0.3, 0.5, 0.8)`.
-#' @param decay_types Character vector specifying decay types for the "decay" method. Defaults to `c("exponential", "linear")`.
-#' @param lambda_values Numeric vector of lambda values to use for the "decay" method. Defaults to `c(0.1, 0.2, 0.5, 1)`.
-#' @param ci_level Numeric value specifying the confidence level. Defaults to `0.95`.
-#' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions. Defaults to `0.01`.
-#' @param ... Additional arguments passed to `createSensitivityResults`.
+#' @param rho_values Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.
+#' @param decay_types Character vector specifying decay types for the "decay" method. Defaults to \code{c("exponential", "linear")}.
+#' @param lambda_values Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.
+#' @param ci_level Numeric value specifying the confidence level. Defaults to \code{0.95}.
+#' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.
+#' @param ... Additional arguments passed to \code{HonestDiD::createSensitivityResults}.
 #'
 #' @return A list containing:
-#'   - `widest_interval`: The interval with the widest width.
-#'   - `narrowest_interval`: The interval with the narrowest width.
-#'   - `all_intervals`: A data frame containing all computed intervals.
+#'   \describe{
+#'     \item{\code{widest_interval}}{The interval with the widest width.}
+#'     \item{\code{narrowest_interval}}{The interval with the narrowest width.}
+#'     \item{\code{all_intervals}}{A data frame containing all computed intervals.}
+#'   }
 #'
 #' @importFrom stats sd
 #' @importFrom HonestDiD createSensitivityResults
@@ -29,10 +30,9 @@ compute_sensitivity_intervals_smooth <- function(
     betahat,
     ci_lower,
     ci_upper,
-    years,
     numPrePeriods,
     numPostPeriods,
-    method = "constant",
+    method = "all",
     rho_values = c(0, 0.3, 0.5, 0.8),
     decay_types = c("exponential", "linear"),
     lambda_values = c(0.1, 0.2, 0.5, 1),
@@ -40,9 +40,12 @@ compute_sensitivity_intervals_smooth <- function(
     Mvec = 0.02,
     ...
 ) {
+  # Define the time index internally
+  years <- seq_along(betahat)
+
   # Input validation
-  if (length(betahat) != length(ci_lower) || length(betahat) != length(ci_upper) || length(betahat) != length(years)) {
-    stop("All input vectors (betahat, ci_lower, ci_upper, years) must have the same length.")
+  if (length(betahat) != length(ci_lower) || length(betahat) != length(ci_upper)) {
+    stop("betahat, ci_lower, and ci_upper must all be the same length.")
   }
 
   if (!is.numeric(numPrePeriods) || !is.numeric(numPostPeriods)) {
@@ -50,7 +53,7 @@ compute_sensitivity_intervals_smooth <- function(
   }
 
   if (!is.numeric(ci_level) || ci_level <= 0 || ci_level >= 1) {
-    stop("ci_level must be a numeric value between 0 and 1.")
+    stop("ci_level must be a numeric value between 0 and 1 (exclusive).")
   }
 
   # Compute variances from confidence intervals
@@ -129,7 +132,12 @@ compute_sensitivity_intervals_smooth <- function(
       for (decay_type in decay_types) {
         for (lambda in lambda_values) {
           # Construct covariance matrix
-          sigma <- construct_cov_matrix_decay(years, variances, decay_type = decay_type, lambda = lambda)
+          sigma <- construct_cov_matrix_decay(
+            years = years,
+            variances = variances,
+            decay_type = decay_type,
+            lambda = lambda
+          )
 
           # Ensure sigma dimensions match betahat
           T <- length(betahat)
@@ -180,7 +188,6 @@ compute_sensitivity_intervals_smooth <- function(
     # Find narrowest interval
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, ]
-
   } else {
     warning("No valid intervals computed. All covariance matrices were not positive semi-definite.")
     combined_results <- data.frame()
@@ -194,7 +201,7 @@ compute_sensitivity_intervals_smooth <- function(
       "Covariance matrices were not positive semi-definite for some parameter values. %d cases were skipped.",
       length(invalid_params)
     ))
-    # You can also return invalid_params as part of the result if desired
+    # Could also return invalid_params as part of the result if desired
   }
 
   # Create a custom object with class
