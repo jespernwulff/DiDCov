@@ -7,7 +7,7 @@
 #' @param ci_upper Numeric vector of upper bounds of confidence intervals.
 #' @param numPrePeriods Integer indicating the number of pre-treatment periods.
 #' @param numPostPeriods Integer indicating the number of post-treatment periods.
-#' @param method Character string specifying the method to use: "constant", "decay", or "all". Defaults to "all".
+#' @param method Character string specifying the method to use: "constant", "decay", or "all". Defaults to "constant".
 #' @param rho_values Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.
 #' @param decay_types Character vector specifying decay types for the "decay" method. Defaults to \code{c("exponential", "linear")}.
 #' @param lambda_values Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.
@@ -32,7 +32,7 @@ compute_sensitivity_intervals_smooth <- function(
     ci_upper,
     numPrePeriods,
     numPostPeriods,
-    method = "all",
+    method = "constant",
     rho_values = c(0, 0.3, 0.5, 0.8),
     decay_types = c("exponential", "linear"),
     lambda_values = c(0.1, 0.2, 0.5, 1),

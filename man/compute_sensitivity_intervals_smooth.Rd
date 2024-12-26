@@ -8,7 +8,6 @@ compute_sensitivity_intervals_smooth(
   betahat,
   ci_lower,
   ci_upper,
-  years,
   numPrePeriods,
   numPostPeriods,
   method = "constant",
@@ -27,13 +26,11 @@ compute_sensitivity_intervals_smooth(
 
 \item{ci_upper}{Numeric vector of upper bounds of confidence intervals.}
 
-\item{years}{Numeric vector of years corresponding to the effect sizes.}
-
 \item{numPrePeriods}{Integer indicating the number of pre-treatment periods.}
 
 \item{numPostPeriods}{Integer indicating the number of post-treatment periods.}
 
-\item{method}{Character string specifying the method to use: "constant", "decay", or "all". Defaults to "all".}
+\item{method}{Character string specifying the method to use: "constant", "decay", or "all". Defaults to "constant".}
 
 \item{rho_values}{Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.}
 
@@ -43,16 +40,16 @@ compute_sensitivity_intervals_smooth(
 
 \item{ci_level}{Numeric value specifying the confidence level. Defaults to \code{0.95}.}
 
-\item{Mvec}{Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.01}.}
+\item{Mvec}{Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.}
 
-\item{...}{Additional arguments passed to \code{createSensitivityResults}.}
+\item{...}{Additional arguments passed to \code{HonestDiD::createSensitivityResults}.}
 }
 \value{
 A list containing:
-\itemize{
-\item \code{widest_interval}: The interval with the widest width.
-\item \code{narrowest_interval}: The interval with the narrowest width.
-\item \code{all_intervals}: A data frame containing all computed intervals.
+\describe{
+\item{\code{widest_interval}}{The interval with the widest width.}
+\item{\code{narrowest_interval}}{The interval with the narrowest width.}
+\item{\code{all_intervals}}{A data frame containing all computed intervals.}
 }
 }
 \description{
