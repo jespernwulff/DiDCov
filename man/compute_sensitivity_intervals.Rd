@@ -10,7 +10,7 @@ compute_sensitivity_intervals(
   ci_upper,
   numPrePeriods,
   numPostPeriods,
-  method = "all",
+  method = "constant",
   rho_values = c(0, 0.3, 0.5, 0.8),
   decay_types = c("exponential", "linear"),
   lambda_values = c(0.1, 0.2, 0.5, 1),
@@ -31,7 +31,7 @@ compute_sensitivity_intervals(
 \item{numPostPeriods}{An integer specifying the number of post-treatment periods.}
 
 \item{method}{A character string specifying the covariance matrix construction method.
-Must be one of "all", "constant", or "decay". Default is "all".}
+Must be one of "all", "constant", or "decay". Default is "constant".}
 
 \item{rho_values}{A numeric vector of rho values to use when method is "constant" or "all".
 Default is \code{c(0, 0.3, 0.5, 0.8)}.}
