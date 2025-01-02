@@ -44,16 +44,23 @@ compute_sensitivity_intervals_smooth <- function(
   years <- seq_along(betahat)
 
   # Input validation
-  if (length(betahat) != length(ci_lower) || length(betahat) != length(ci_upper)) {
+  # Input validation
+  n <- length(betahat)
+  if (length(ci_lower) != n || length(ci_upper) != n) {
     stop("betahat, ci_lower, and ci_upper must all be the same length.")
   }
-
-  if (!is.numeric(numPrePeriods) || !is.numeric(numPostPeriods)) {
-    stop("numPrePeriods and numPostPeriods must be numeric.")
+  if (any(ci_upper < ci_lower)) {
+    stop("Each element of ci_upper must be greater than or equal to the corresponding element of ci_lower.")
   }
-
-  if (!is.numeric(ci_level) || ci_level <= 0 || ci_level >= 1) {
+  if (!is.numeric(ci_level) || length(ci_level) != 1 || is.na(ci_level) ||
+      ci_level <= 0 || ci_level >= 1) {
     stop("ci_level must be a numeric value between 0 and 1 (exclusive).")
+  }
+  if (!is.numeric(numPrePeriods) || length(numPrePeriods) != 1 || numPrePeriods < 0) {
+    stop("numPrePeriods must be a non-negative integer.")
+  }
+  if (!is.numeric(numPostPeriods) || length(numPostPeriods) != 1 || numPostPeriods < 1) {
+    stop("numPostPeriods must be a positive integer.")
   }
 
   # Compute variances from confidence intervals

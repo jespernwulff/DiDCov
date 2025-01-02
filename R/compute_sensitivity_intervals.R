@@ -90,9 +90,6 @@ compute_sensitivity_intervals <- function(
   if (!is.numeric(numPostPeriods) || length(numPostPeriods) != 1 || numPostPeriods < 1) {
     stop("numPostPeriods must be a positive integer.")
   }
-  if (numPrePeriods + numPostPeriods != n) {
-    stop("The sum of numPrePeriods and numPostPeriods must equal the length of betahat.")
-  }
   if (!method %in% c("all", "constant", "decay")) {
     stop("method must be one of 'all', 'constant', or 'decay'.")
   }
