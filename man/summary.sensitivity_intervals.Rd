@@ -4,24 +4,30 @@
 \alias{summary.sensitivity_intervals}
 \title{Summary Method for Sensitivity Intervals}
 \usage{
-\method{summary}{sensitivity_intervals}(object, ...)
+\method{summary}{sensitivity_intervals}(object, type = c("widest", "narrowest"), ...)
 }
 \arguments{
 \item{object}{An object of class \code{sensitivity_intervals}.}
 
+\item{type}{A string indicating which intervals to display.
+Must be either \code{"widest"} (default) or \code{"narrowest"}.}
+
 \item{...}{Additional arguments (currently unused).}
 }
 \value{
-Prints a summary to the console.
+Prints a tibble to the console with columns:
+\code{lb}, \code{ub}, \code{method}, \code{Delta}, and either \code{M} or \code{Mbar}.
 }
 \description{
-Provides a concise summary of the results from \code{compute_sensitivity_intervals} or \code{compute_sensitivity_intervals_smooth}.
+Provides a concise summary of the results from \code{compute_sensitivity_intervals}
+or \code{compute_sensitivity_intervals_smooth}.
 }
 \details{
-If multiple values of Mbar (for \code{compute_sensitivity_intervals}) or M (for \code{compute_sensitivity_intervals_smooth}) are provided,
-the summary will report the widest and narrowest intervals for each distinct Mbar/M value.
+By default, this method prints the widest intervals (one row per M or Mbar),
+but the user can specify \code{type = "narrowest"} to see the narrowest intervals.
 }
 \examples{
+\dontrun{
 # Define simple data
 ub <- c(-0.002, 0.015)
 lb <- c(-0.012, 0.0065)
@@ -36,6 +42,11 @@ bounds_paper <- compute_sensitivity_intervals(
   numPostPeriods = 1
 )
 
-# Print a concise summary of the results
+# Print the widest intervals by default
 summary(bounds_paper)
+
+# Print the narrowest intervals
+summary(bounds_paper, type = "narrowest")
+}
+
 }

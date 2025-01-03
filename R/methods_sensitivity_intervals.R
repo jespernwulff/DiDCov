@@ -1,14 +1,24 @@
 #' Summary Method for Sensitivity Intervals
 #'
-#' Provides a concise summary of the results from `compute_sensitivity_intervals` or `compute_sensitivity_intervals_smooth`.
+#' Provides a concise summary of the results from `compute_sensitivity_intervals`
+#' or `compute_sensitivity_intervals_smooth`.
 #'
-#' If multiple values of Mbar (for `compute_sensitivity_intervals`) or M (for `compute_sensitivity_intervals_smooth`) are provided,
-#' the summary will report the widest and narrowest intervals for each distinct Mbar/M value.
+#' By default, this method prints the widest intervals (one row per M or Mbar),
+#' but the user can specify \code{type = "narrowest"} to see the narrowest intervals.
 #'
-#' @param object An object of class `sensitivity_intervals`.
+#' @param object An object of class \code{sensitivity_intervals}.
+#' @param type A string indicating which intervals to display.
+#'   Must be either \code{"widest"} (default) or \code{"narrowest"}.
 #' @param ... Additional arguments (currently unused).
-#' @return Prints a summary to the console.
+#'
+#' @return Prints a tibble to the console with columns:
+#'   \code{lb}, \code{ub}, \code{method}, \code{Delta}, and either \code{M} or \code{Mbar}.
+#'
+#' @importFrom dplyr group_by filter ungroup rename select
+#' @importFrom rlang .data
+#'
 #' @examples
+#' \dontrun{
 #' # Define simple data
 #' ub <- c(-0.002, 0.015)
 #' lb <- c(-0.012, 0.0065)
@@ -23,15 +33,25 @@
 #'   numPostPeriods = 1
 #' )
 #'
-#' # Print a concise summary of the results
+#' # Print the widest intervals by default
 #' summary(bounds_paper)
+#'
+#' # Print the narrowest intervals
+#' summary(bounds_paper, type = "narrowest")
+#' }
+#'
 #' @export
-summary.sensitivity_intervals <- function(object, ...) {
+summary.sensitivity_intervals <- function(object,
+                                          type = c("widest", "narrowest"),
+                                          ...) {
+  # Match the user's choice
+  type <- match.arg(type)
+
   if (!inherits(object, "sensitivity_intervals")) {
     stop("The input object is not of class 'sensitivity_intervals'.")
   }
 
-  # Determine whether we have an 'Mbar' or 'M' column to group by
+  # Identify whether M or Mbar is in all_intervals
   colnames_all <- colnames(object$all_intervals)
   param_name <- NULL
   if ("Mbar" %in% colnames_all) {
@@ -40,58 +60,64 @@ summary.sensitivity_intervals <- function(object, ...) {
     param_name <- "M"
   }
 
-  # Calculate overall summary statistics
-  average_width <- mean(object$all_intervals$interval_width, na.rm = TRUE)
-  sd_width <- sd(object$all_intervals$interval_width, na.rm = TRUE)
+  # Summary stats for printing at the end
+  average_width <- mean(object$all_intervals$.data$interval_width, na.rm = TRUE)
+  sd_width      <- sd(object$all_intervals$.data$interval_width, na.rm = TRUE)
 
-  cat("Sensitivity Interval Summary:\n")
-  cat("----------------------------------------------------\n")
+  cat("Sensitivity Intervals Summary\n")
+  cat("----------------------------------------\n")
 
-  # If we have multiple values of Mbar/M, print separate summaries per value
+  # If M or Mbar is found, group by it
   if (!is.null(param_name)) {
-    unique_vals <- unique(object$all_intervals[[param_name]])
-
-    # If more than one Mbar/M value, print interval info per Mbar/M
-    if (length(unique_vals) > 1) {
-      for (val in unique_vals) {
-        # Subset intervals for this Mbar/M value
-        subset_intervals <- object$all_intervals[object$all_intervals[[param_name]] == val, ]
-
-        # Find widest and narrowest intervals for this subset
-        widest_index <- which.max(subset_intervals$interval_width)
-        narrowest_index <- which.min(subset_intervals$interval_width)
-
-        widest_interval_sub <- subset_intervals[widest_index, , drop = FALSE]
-        narrowest_interval_sub <- subset_intervals[narrowest_index, , drop = FALSE]
-
-        cat(sprintf("%s = %.3f:\n", param_name, val))
-        cat("Widest Interval:\n")
-        print(widest_interval_sub)
-        cat("\nNarrowest Interval:\n")
-        print(narrowest_interval_sub)
-        cat("\n----------------------------------------------------\n")
+    intervals_summary <- dplyr::group_by(object$all_intervals, .data[[param_name]])
+    intervals_summary <- dplyr::filter(
+      intervals_summary,
+      if (type == "widest") {
+        .data$interval_width == max(.data$interval_width)
+      } else {
+        .data$interval_width == min(.data$interval_width)
       }
+    )
+    intervals_summary <- dplyr::ungroup(intervals_summary)
+
+    # If grouping by Mbar, rename Mbar -> M; otherwise keep M
+    if (param_name == "Mbar") {
+      intervals_summary <- dplyr::rename(intervals_summary, M = .data$Mbar)
+      intervals_summary <- dplyr::select(intervals_summary,
+                                         .data$lb, .data$ub, .data$method,
+                                         .data$Delta, .data$M)
     } else {
-      # Only one Mbar/M value, behave as original
+      intervals_summary <- dplyr::select(intervals_summary,
+                                         .data$lb, .data$ub, .data$method,
+                                         .data$Delta, .data$M)
+    }
+
+    if (type == "widest") {
+      cat("WIDEST intervals (one per distinct", param_name, "):\n")
+    } else {
+      cat("NARROWEST intervals (one per distinct", param_name, "):\n")
+    }
+    print(intervals_summary)
+    cat("\n")
+
+  } else {
+    # Fall back if no M or Mbar
+    cat("Note: No M or Mbar column found. Falling back on original behavior.\n\n")
+
+    if (type == "widest") {
       cat("Widest Interval:\n")
       print(object$widest_interval)
-      cat("\nNarrowest Interval:\n")
+    } else {
+      cat("Narrowest Interval:\n")
       print(object$narrowest_interval)
-      cat("\n")
     }
-  } else {
-    # No Mbar or M column, original behavior
-    cat("Widest Interval:\n")
-    print(object$widest_interval)
-    cat("\nNarrowest Interval:\n")
-    print(object$narrowest_interval)
     cat("\n")
   }
 
   # Print overall average and sd at the bottom
   avg <- round(average_width, 4)
   sdv <- round(sd_width, 4)
-  cat(sprintf("Average Interval Width: %.4f (%.4f)\n", avg, sdv))
-  cat("----------------------------------------------------\n")
+  cat(sprintf("Average Interval Width: %.4f (SD = %.4f)\n", avg, sdv))
+  cat("----------------------------------------\n")
 }
 
