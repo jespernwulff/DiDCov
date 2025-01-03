@@ -9,44 +9,10 @@
 \arguments{
 \item{object}{An object of class \code{sensitivity_intervals}.}
 
-\item{type}{A string indicating which intervals to display.
-Must be either \code{"widest"} (default) or \code{"narrowest"}.}
+\item{type}{Either "widest" (default) or "narrowest".}
 
-\item{...}{Additional arguments (currently unused).}
-}
-\value{
-Prints a tibble to the console with columns:
-\code{lb}, \code{ub}, \code{method}, \code{Delta}, and either \code{M} or \code{Mbar}.
+\item{...}{Currently unused.}
 }
 \description{
-Provides a concise summary of the results from \code{compute_sensitivity_intervals}
-or \code{compute_sensitivity_intervals_smooth}.
-}
-\details{
-By default, this method prints the widest intervals (one row per M or Mbar),
-but the user can specify \code{type = "narrowest"} to see the narrowest intervals.
-}
-\examples{
-\dontrun{
-# Define simple data
-ub <- c(-0.002, 0.015)
-lb <- c(-0.012, 0.0065)
-beta <- c(-0.007, 0.011)
-
-# Compute the sensitivity intervals
-bounds_paper <- compute_sensitivity_intervals(
-  betahat = beta,
-  ci_lower = lb,
-  ci_upper = ub,
-  numPrePeriods = 1,
-  numPostPeriods = 1
-)
-
-# Print the widest intervals by default
-summary(bounds_paper)
-
-# Print the narrowest intervals
-summary(bounds_paper, type = "narrowest")
-}
-
+Summary Method for Sensitivity Intervals
 }
