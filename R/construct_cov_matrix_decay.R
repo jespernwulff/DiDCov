@@ -52,7 +52,7 @@ construct_cov_matrix_decay <- function(years, variances, decay_type = "exponenti
   }
 
   # Construct the covariance matrix
-  sd_vec <- sqrt(variances)
+  sd_vec <- as.numeric(sqrt(variances))
   cov_matrix <- corr_matrix * (sd_vec %o% sd_vec)
 
   # Adjust sigma to be positive semi-definite
