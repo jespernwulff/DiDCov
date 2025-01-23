@@ -12,24 +12,43 @@ utils::globalVariables(c("y_pos", "lower", "upper", "interval_type", "Mbar", "M"
 #'
 #' @param x An object of class `sensitivity_intervals`.
 #' @param honest_data Optional. Data frame with columns `lb`, `ub`, and either `Mbar` or `M` matching the variable in `x$all_intervals`.
+#' @param round_values Logical indicating whether to round Mbar/M values (default: TRUE).
+#' @param show_legend Logical indicating whether to show the legend (default: TRUE).
 #' @param ... Additional arguments (currently unused).
 #'
 #' @return A ggplot object.
 #' @export
-plot.sensitivity_intervals <- function(x, honest_data = NULL, ...) {
+plot.sensitivity_intervals <- function(x, honest_data = NULL, round_values = TRUE, show_legend = TRUE, ...) {
   if (!inherits(x, "sensitivity_intervals")) {
     stop("The input object is not of class 'sensitivity_intervals'.")
   }
 
+  # Round Mbar or M if round_values is TRUE
   intervals <- x$all_intervals
+  if (round_values) {
+    if ("Mbar" %in% colnames(intervals)) {
+      intervals$Mbar <- round(intervals$Mbar, 6)
+      facet_var <- "Mbar"
+    } else if ("M" %in% colnames(intervals)) {
+      intervals$M <- round(intervals$M, 6)
+      facet_var <- "M"
+    } else {
+      facet_var <- NULL
+    }
 
-  # Determine which variable to facet by: prefer Mbar if present, otherwise M
-  if ("Mbar" %in% colnames(intervals)) {
-    facet_var <- "Mbar"
-  } else if ("M" %in% colnames(intervals)) {
-    facet_var <- "M"
+    # Round honest_data if provided
+    if (!is.null(honest_data)) {
+      if ("Mbar" %in% colnames(honest_data)) {
+        honest_data$Mbar <- round(honest_data$Mbar, 6)
+      } else if ("M" %in% colnames(honest_data)) {
+        honest_data$M <- round(honest_data$M, 6)
+      }
+    }
   } else {
-    facet_var <- NULL
+    # Determine facet variable without rounding
+    facet_var <- if ("Mbar" %in% colnames(intervals)) "Mbar"
+    else if ("M" %in% colnames(intervals)) "M"
+    else NULL
   }
 
   # Helper function to build plot data for a subset of intervals corresponding to one Mbar/M value (or the whole set if no facet_var)
@@ -103,17 +122,13 @@ plot.sensitivity_intervals <- function(x, honest_data = NULL, ...) {
   max_abs <- max(abs(c(plot_data$lower, plot_data$upper)), na.rm = TRUE)
   x_limits <- c(-max_abs, max_abs)
 
-  # Colors and y-axis depend on honest_data presence
+  # Colors depend on honest_data presence
   if (is.null(honest_data)) {
     # Two intervals: Narrowest, Widest
     color_values <- c("Widest" = "#D55E00", "Narrowest" = "#0072B2")
-    y_breaks <- c(1, 2)
-    y_labels <- c("Narrowest", "Widest")
   } else {
     # Three intervals: Narrowest, Widest, HonestDiD
     color_values <- c("Widest" = "#D55E00", "Narrowest" = "#0072B2", "HonestDiD" = "#000000")
-    y_breaks <- c(1, 2, 3)
-    y_labels <- c("Narrowest", "Widest", "HonestDiD")
   }
 
   p <- ggplot(plot_data, aes(x = beta, y = y_pos)) +
@@ -121,16 +136,24 @@ plot.sensitivity_intervals <- function(x, honest_data = NULL, ...) {
                    height = 0.3, linewidth = 0.8) +
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
     scale_color_manual(values = color_values) +
-    scale_y_continuous(breaks = y_breaks, labels = y_labels, name = NULL) +
+    scale_y_continuous(breaks = NULL, labels = NULL, name = NULL) +
     coord_cartesian(xlim = x_limits) +
-    labs(x = NULL, y = NULL, color = NULL) +
+    labs(x = NULL, y = NULL) +
     theme_classic(base_size = 14) +
     theme(
-      legend.position = "none",
       axis.text.x = element_text(size = 12),
-      axis.text.y = element_text(size = 12),
       plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
     )
+
+  # Conditionally add legend
+  if (show_legend) {
+    p <- p +
+      theme(legend.position = "bottom") +
+      labs(color = "Interval Type")
+  } else {
+    p <- p +
+      theme(legend.position = "none")
+  }
 
   if (facet_needed) {
     p <- p + facet_wrap(as.formula(paste0("~", facet_var)), ncol = 1, scales = "free_y")
@@ -138,7 +161,6 @@ plot.sensitivity_intervals <- function(x, honest_data = NULL, ...) {
 
   return(p)
 }
-
 
 
 

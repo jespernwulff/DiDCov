@@ -4,12 +4,16 @@
 \alias{plot.sensitivity_intervals}
 \title{Plot Method for Sensitivity Intervals}
 \usage{
-\method{plot}{sensitivity_intervals}(x, honest_data = NULL, ...)
+\method{plot}{sensitivity_intervals}(x, honest_data = NULL, round_values = TRUE, show_legend = TRUE, ...)
 }
 \arguments{
 \item{x}{An object of class \code{sensitivity_intervals}.}
 
 \item{honest_data}{Optional. Data frame with columns \code{lb}, \code{ub}, and either \code{Mbar} or \code{M} matching the variable in \code{x$all_intervals}.}
+
+\item{round_values}{Logical indicating whether to round Mbar/M values (default: TRUE).}
+
+\item{show_legend}{Logical indicating whether to show the legend (default: TRUE).}
 
 \item{...}{Additional arguments (currently unused).}
 }
