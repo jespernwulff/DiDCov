@@ -13,6 +13,8 @@
 #' @param lambda_values Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.
 #' @param ci_level Numeric value specifying the confidence level. Defaults to \code{0.95}.
 #' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.
+#' @param scale Logical flag indicating whether to apply scaling to \code{betahat},
+#'   \code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).
 #' @param ... Additional arguments passed to \code{HonestDiD::createSensitivityResults}.
 #'
 #' @return A list containing:
@@ -38,13 +40,10 @@ compute_sensitivity_intervals_smooth <- function(
     lambda_values = c(0.1, 0.2, 0.5, 1),
     ci_level = 0.95,
     Mvec = 0.02,
+    scale = TRUE,
     ...
 ) {
-  # Define the time index internally
-  years <- seq_along(betahat)
-
-  # Input validation
-  # Input validation
+  #---- 1. Input validation ----#
   n <- length(betahat)
   if (length(ci_lower) != n || length(ci_upper) != n) {
     stop("betahat, ci_lower, and ci_upper must all be the same length.")
@@ -63,20 +62,97 @@ compute_sensitivity_intervals_smooth <- function(
     stop("numPostPeriods must be a positive integer.")
   }
 
-  # Compute variances from confidence intervals
-  variances_result <- compute_variances_from_ci(years, betahat, ci_lower, ci_upper, ci_level)
+  #---- 2. Compute placeholder variances from confidence intervals ----#
+  #    Note the change: pass `effect_sizes = betahat` instead of `betahat = betahat`.
+  variances_result <- compute_variances_from_ci(
+    years         = seq_along(betahat),
+    effect_sizes  = betahat,
+    ci_lower      = ci_lower,
+    ci_upper      = ci_upper,
+    ci_level      = ci_level
+  )
   variances <- variances_result$variances
 
-  # Initialize list to store intervals
-  intervals_list <- list()
+  #---- 3. Helper function to run createSensitivityResults with optional scaling ----#
+  run_sensitivity_with_optional_scaling <- function(betahat, sigma, Mvec, ...) {
+    if (scale) {
+      # Attempt scaling based on variance of the first post-treatment period
+      var_post <- sigma[numPrePeriods + 1, numPrePeriods + 1]
+      if (var_post <= 0) {
+        # Not positive or numerically stable; skip or warn
+        return(NULL)
+      }
 
-  # Initialize list to store invalid parameter values
-  invalid_params <- list()
+      scaleFactor <- 1 / sqrt(var_post)
 
-  # Define methods to run
+      # Scale betahat, sigma, and Mvec
+      betahat_scaled <- betahat * scaleFactor
+      sigma_scaled   <- sigma * (scaleFactor^2)
+      Mvec_scaled    <- Mvec  * scaleFactor
+
+      # Safely run createSensitivityResults
+      result <- tryCatch(
+        {
+          HonestDiD::createSensitivityResults(
+            betahat       = betahat_scaled,
+            sigma         = sigma_scaled,
+            numPrePeriods = numPrePeriods,
+            numPostPeriods= numPostPeriods,
+            Mvec          = Mvec_scaled,
+            ...
+          )
+        },
+        error = function(e) {
+          # If even with scaling it fails, return NULL
+          return(NULL)
+        }
+      )
+
+      # If successful, unscale the results (lb, ub, and any columns named M or Mbar)
+      if (!is.null(result)) {
+        result$lb <- result$lb / scaleFactor
+        result$ub <- result$ub / scaleFactor
+
+        # If "M" or "Mbar" columns exist in the result, unscale them as well.
+        if ("M" %in% colnames(result)) {
+          result$M <- result$M / scaleFactor
+        }
+        if ("Mbar" %in% colnames(result)) {
+          result$Mbar <- result$Mbar / scaleFactor
+        }
+      }
+      return(result)
+
+    } else {
+      # Try no scaling; catch errors
+      result <- tryCatch(
+        {
+          HonestDiD::createSensitivityResults(
+            betahat       = betahat,
+            sigma         = sigma,
+            numPrePeriods = numPrePeriods,
+            numPostPeriods= numPostPeriods,
+            Mvec          = Mvec,
+            ...
+          )
+        },
+        error = function(e) {
+          message("Computation failed likely due to a very small variance. ",
+                  "Consider switching `scale = TRUE`.")
+          return(NULL)
+        }
+      )
+      return(result)
+    }
+  }
+
+  #---- 4. Prepare to loop over methods/parameters ----#
   methods_to_run <- if (method == "all") c("constant", "decay") else method
 
-  # Calculate total number of iterations for the progress bar
+  intervals_list <- list()
+  invalid_params <- list()
+
+  # Count total iterations for progress bar
   total_iterations <- 0
   if ("constant" %in% methods_to_run) {
     total_iterations <- total_iterations + length(rho_values)
@@ -85,140 +161,140 @@ compute_sensitivity_intervals_smooth <- function(
     total_iterations <- total_iterations + length(decay_types) * length(lambda_values)
   }
 
-  # Initialize progress bar
   pb <- txtProgressBar(min = 0, max = total_iterations, style = 3)
   progress_counter <- 0
 
-  # Loop over methods
+  #---- 5. Main loop ----#
   for (current_method in methods_to_run) {
     if (current_method == "constant") {
       if (!is.numeric(rho_values) || any(rho_values < -1) || any(rho_values > 1)) {
-        stop("rho_values must be a numeric vector with values between -1 and 1.")
+        stop("rho_values must be numeric with values between -1 and 1.")
       }
 
+      # Loop over rho
       for (rho in rho_values) {
         # Construct covariance matrix
-        sigma <- construct_cov_matrix(years, variances, rho)
-
-        # Ensure sigma dimensions match betahat
+        sigma <- construct_cov_matrix(
+          years     = seq_along(betahat),
+          variances = variances,
+          rho       = rho
+        )
+        # Quick dimension check
         T <- length(betahat)
         if (!all(dim(sigma) == c(T, T))) {
-          stop("sigma must be a square matrix with dimensions equal to the length of betahat.")
+          stop("sigma must be a square matrix with dimensions equal to length(betahat).")
         }
 
-        # Call HonestDiD function
-        delta_rm_results <- createSensitivityResults(
+        # Run the sensitivity analysis (with optional scaling)
+        delta_rm_results <- run_sensitivity_with_optional_scaling(
           betahat = betahat,
-          sigma = sigma,
-          numPrePeriods = numPrePeriods,
-          numPostPeriods = numPostPeriods,
-          Mvec = Mvec,
+          sigma   = sigma,
+          Mvec    = Mvec,
           ...
         )
 
-        # Add method and parameter to results
-        delta_rm_results$method <- "constant"
-        delta_rm_results$parameter <- rho
+        if (!is.null(delta_rm_results)) {
+          # Annotate results
+          delta_rm_results$method <- "constant"
+          delta_rm_results$parameter <- rho
+          intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
+        } else {
+          # Store invalid param if needed
+          invalid_params[[length(invalid_params) + 1]] <- list(method = "constant", param = rho)
+        }
 
-        # Store results
-        intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
-
-        # Update progress bar
         progress_counter <- progress_counter + 1
         setTxtProgressBar(pb, progress_counter)
       }
+
     } else if (current_method == "decay") {
       if (!all(decay_types %in% c("exponential", "linear"))) {
         stop("decay_types must be either 'exponential' or 'linear'.")
       }
-
       if (!is.numeric(lambda_values) || any(lambda_values < 0)) {
-        stop("lambda_values must be a numeric vector with non-negative values.")
+        stop("lambda_values must be non-negative.")
       }
 
+      # Loop over decay_types and lambdas
       for (decay_type in decay_types) {
         for (lambda in lambda_values) {
           # Construct covariance matrix
           sigma <- construct_cov_matrix_decay(
-            years = years,
-            variances = variances,
-            decay_type = decay_type,
-            lambda = lambda
+            years       = seq_along(betahat),
+            variances   = variances,
+            decay_type  = decay_type,
+            lambda      = lambda
           )
-
-          # Ensure sigma dimensions match betahat
+          # Quick dimension check
           T <- length(betahat)
           if (!all(dim(sigma) == c(T, T))) {
-            stop("sigma must be a square matrix with dimensions equal to the length of betahat.")
+            stop("sigma must be a square matrix with dimensions equal to length(betahat).")
           }
 
-          # Call HonestDiD function
-          delta_rm_results <- createSensitivityResults(
+          # Run sensitivity analysis (with optional scaling)
+          delta_rm_results <- run_sensitivity_with_optional_scaling(
             betahat = betahat,
-            sigma = sigma,
-            numPrePeriods = numPrePeriods,
-            numPostPeriods = numPostPeriods,
-            Mvec = Mvec,
+            sigma   = sigma,
+            Mvec    = Mvec,
             ...
           )
 
-          # Add method and parameter to results
-          delta_rm_results$method <- paste0("decay_", decay_type)
-          delta_rm_results$parameter <- lambda
+          if (!is.null(delta_rm_results)) {
+            # Annotate results
+            delta_rm_results$method <- paste0("decay_", decay_type)
+            delta_rm_results$parameter <- lambda
+            intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
+          } else {
+            invalid_params[[length(invalid_params) + 1]] <-
+              list(method = paste0("decay_", decay_type), param = lambda)
+          }
 
-          # Store results
-          intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
-
-          # Update progress bar
           progress_counter <- progress_counter + 1
           setTxtProgressBar(pb, progress_counter)
         }
       }
+
     } else {
       stop("Unknown method specified.")
     }
   }
 
-  # Close progress bar
   close(pb)
 
-  # Combine results into a single data frame
+  #---- 6. Compile results ----#
   if (length(intervals_list) > 0) {
     combined_results <- do.call(rbind, intervals_list)
-    # Calculate interval widths
     combined_results$interval_width <- combined_results$ub - combined_results$lb
 
-    # Find widest interval
+    # Widest interval
     widest_index <- which.max(combined_results$interval_width)
     widest_interval <- combined_results[widest_index, ]
 
-    # Find narrowest interval
+    # Narrowest interval
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, ]
   } else {
-    warning("No valid intervals computed. All covariance matrices were not positive semi-definite.")
+    warning("No valid intervals computed. Possibly all covariance matrices failed or the solver did not converge.")
     combined_results <- data.frame()
     widest_interval <- data.frame()
     narrowest_interval <- data.frame()
   }
 
-  # Optionally, inform the user about invalid parameter values
+  # Possibly warn about invalid parameters
   if (length(invalid_params) > 0) {
     warning(sprintf(
-      "Covariance matrices were not positive semi-definite for some parameter values. %d cases were skipped.",
+      "Computation failed for %d parameter setting(s). This may indicate non-positive-definite covariance or solver issues.",
       length(invalid_params)
     ))
-    # Could also return invalid_params as part of the result if desired
   }
 
-  # Create a custom object with class
+  #---- 7. Return result object ----#
   result <- list(
-    widest_interval = widest_interval,
-    narrowest_interval = narrowest_interval,
-    all_intervals = combined_results
+    widest_interval     = widest_interval,
+    narrowest_interval  = narrowest_interval,
+    all_intervals       = combined_results
   )
-
   class(result) <- "sensitivity_intervals"
-
   return(result)
 }
+

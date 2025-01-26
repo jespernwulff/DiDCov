@@ -16,6 +16,7 @@ compute_sensitivity_intervals_smooth(
   lambda_values = c(0.1, 0.2, 0.5, 1),
   ci_level = 0.95,
   Mvec = 0.02,
+  scale = TRUE,
   ...
 )
 }
@@ -41,6 +42,9 @@ compute_sensitivity_intervals_smooth(
 \item{ci_level}{Numeric value specifying the confidence level. Defaults to \code{0.95}.}
 
 \item{Mvec}{Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.}
+
+\item{scale}{Logical flag indicating whether to apply scaling to \code{betahat},
+\code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).}
 
 \item{...}{Additional arguments passed to \code{HonestDiD::createSensitivityResults}.}
 }
