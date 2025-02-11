@@ -48,9 +48,17 @@ summary.sensitivity_intervals <- function(object,
 
     # If grouping by Mbar, rename() to M after the fact
     if (param_name == "Mbar") {
+      # If there's an "M" column already, remove it to avoid duplication
+      if ("M" %in% colnames(intervals_summary)) {
+        intervals_summary <- dplyr::select(intervals_summary, -"M")
+      }
       intervals_summary <- dplyr::rename(intervals_summary, M = "Mbar")
+
+      # Keep columns of interest
+      # If any are missing (e.g. "Delta"), dplyr::select() quietly skips them.
       intervals_summary <- dplyr::select(intervals_summary,
                                          "lb", "ub", "method", "Delta", "M")
+
     } else {
       # param_name == "M"
       intervals_summary <- dplyr::select(intervals_summary,
@@ -85,3 +93,4 @@ summary.sensitivity_intervals <- function(object,
   cat(sprintf("Average Interval Width: %.4f (SD = %.4f)\n", avg, sdv))
   cat("----------------------------------------\n")
 }
+
