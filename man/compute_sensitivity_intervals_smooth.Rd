@@ -32,37 +32,48 @@ compute_sensitivity_intervals_smooth(
 
 \item{numPostPeriods}{Integer indicating the number of post-treatment periods.}
 
-\item{method}{Character string specifying the method to use: "constant", "decay", or "all". Defaults to "constant".}
+\item{method}{Character string specifying the method to use: "constant", "decay", or "all".
+Defaults to "constant".}
 
-\item{rho_values}{Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.}
+\item{rho_values}{Numeric vector of rho values to use for the "constant" method.
+Defaults to \code{c(0, 0.3, 0.5, 0.8)}.}
 
-\item{decay_types}{Character vector specifying decay types for the "decay" method. Defaults to \code{c("exponential", "linear")}.}
+\item{decay_types}{Character vector specifying decay types for the "decay" method.
+Defaults to \code{c("exponential", "linear")}.}
 
-\item{lambda_values}{Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.}
+\item{lambda_values}{Numeric vector of lambda values to use for the "decay" method.
+Defaults to \code{c(0.1, 0.2, 0.5, 1)}.}
 
 \item{ci_level}{Numeric value specifying the confidence level. Defaults to \code{0.95}.}
 
-\item{Mvec}{Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.}
+\item{Mvec}{Numeric vector of smoothness parameters for smoothness restrictions.
+Defaults to \code{0.02}.}
 
 \item{scale}{Logical flag indicating whether to apply scaling to \code{betahat},
 \code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).}
 
 \item{benchmark_aggregator}{Character in \code{c("none","smallest","largest","median")}.
 When not "none", this triggers a call to \code{compute_bound()} to obtain an \emph{upper}
-benchmark bound. The resulting numeric is multiplied into \code{Mvec} before passing to
-\code{createSensitivityResults()}. Defaults to \code{"none"}.}
+benchmark bound. The resulting numeric is multiplied into \code{Mvec} before calling
+\code{createSensitivityResults()}, but the new column \code{Mbar} stores the original \code{Mvec}.
+Defaults to \code{"none"}.}
 
 \item{...}{Additional arguments passed to \code{HonestDiD::createSensitivityResults}
-(e.g. \code{alpha} or \code{l_vec}).}
+(e.g., \code{alpha} or \code{l_vec}).}
 }
 \value{
 A list containing:
 \describe{
 \item{\code{widest_interval}}{The interval with the widest width.}
 \item{\code{narrowest_interval}}{The interval with the narrowest width.}
-\item{\code{all_intervals}}{A data frame containing all computed intervals.}
+\item{\code{all_intervals}}{A data frame containing all computed intervals, including a
+column \code{Mbar} with each row's original \code{M} value from \code{Mvec}.}
 }
 }
 \description{
-This function computes sensitivity intervals over different covariance structures using smoothness restrictions, leveraging the \code{HonestDiD} package.
+This function computes sensitivity intervals over different covariance structures using smoothness
+restrictions, leveraging the \code{HonestDiD} package. Optionally, a benchmark bound is computed with
+\code{compute_bound(..., bound_type = "upper")} and multiplied into \code{Mvec} before the final
+calls to \code{createSensitivityResults()}. The original \code{Mvec} is also retained in a separate
+column \code{Mbar} for transparency.
 }

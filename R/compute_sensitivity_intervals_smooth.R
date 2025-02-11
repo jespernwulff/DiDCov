@@ -1,32 +1,43 @@
 #' Compute Sensitivity Intervals Using Smoothness Restrictions
 #'
-#' This function computes sensitivity intervals over different covariance structures using smoothness restrictions, leveraging the `HonestDiD` package.
+#' This function computes sensitivity intervals over different covariance structures using smoothness
+#' restrictions, leveraging the `HonestDiD` package. Optionally, a benchmark bound is computed with
+#' \code{compute_bound(..., bound_type = "upper")} and multiplied into \code{Mvec} before the final
+#' calls to \code{createSensitivityResults()}. The original \code{Mvec} is also retained in a separate
+#' column \code{Mbar} for transparency.
 #'
 #' @param betahat Numeric vector of effect size estimates.
 #' @param ci_lower Numeric vector of lower bounds of confidence intervals.
 #' @param ci_upper Numeric vector of upper bounds of confidence intervals.
 #' @param numPrePeriods Integer indicating the number of pre-treatment periods.
 #' @param numPostPeriods Integer indicating the number of post-treatment periods.
-#' @param method Character string specifying the method to use: "constant", "decay", or "all". Defaults to "constant".
-#' @param rho_values Numeric vector of rho values to use for the "constant" method. Defaults to \code{c(0, 0.3, 0.5, 0.8)}.
-#' @param decay_types Character vector specifying decay types for the "decay" method. Defaults to \code{c("exponential", "linear")}.
-#' @param lambda_values Numeric vector of lambda values to use for the "decay" method. Defaults to \code{c(0.1, 0.2, 0.5, 1)}.
+#' @param method Character string specifying the method to use: "constant", "decay", or "all".
+#'   Defaults to "constant".
+#' @param rho_values Numeric vector of rho values to use for the "constant" method.
+#'   Defaults to \code{c(0, 0.3, 0.5, 0.8)}.
+#' @param decay_types Character vector specifying decay types for the "decay" method.
+#'   Defaults to \code{c("exponential", "linear")}.
+#' @param lambda_values Numeric vector of lambda values to use for the "decay" method.
+#'   Defaults to \code{c(0.1, 0.2, 0.5, 1)}.
 #' @param ci_level Numeric value specifying the confidence level. Defaults to \code{0.95}.
-#' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.
+#' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions.
+#'   Defaults to \code{0.02}.
 #' @param scale Logical flag indicating whether to apply scaling to \code{betahat},
 #'   \code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).
 #' @param benchmark_aggregator Character in \code{c("none","smallest","largest","median")}.
 #'   When not "none", this triggers a call to \code{compute_bound()} to obtain an \emph{upper}
-#'   benchmark bound. The resulting numeric is multiplied into \code{Mvec} before passing to
-#'   \code{createSensitivityResults()}. Defaults to \code{"none"}.
+#'   benchmark bound. The resulting numeric is multiplied into \code{Mvec} before calling
+#'   \code{createSensitivityResults()}, but the new column \code{Mbar} stores the original \code{Mvec}.
+#'   Defaults to \code{"none"}.
 #' @param ... Additional arguments passed to \code{HonestDiD::createSensitivityResults}
-#'   (e.g. \code{alpha} or \code{l_vec}).
+#'   (e.g., \code{alpha} or \code{l_vec}).
 #'
 #' @return A list containing:
 #'   \describe{
 #'     \item{\code{widest_interval}}{The interval with the widest width.}
 #'     \item{\code{narrowest_interval}}{The interval with the narrowest width.}
-#'     \item{\code{all_intervals}}{A data frame containing all computed intervals.}
+#'     \item{\code{all_intervals}}{A data frame containing all computed intervals, including a
+#'       column \code{Mbar} with each row's original \code{M} value from \code{Mvec}.}
 #'   }
 #'
 #' @importFrom stats sd
@@ -78,11 +89,12 @@ compute_sensitivity_intervals_smooth <- function(
     ci_level     = ci_level
   )
 
+  # Store the original Mvec so we can create "Mbar" column
+  Mvec_original <- Mvec
+
   #---- 3. [Optional] Compute an 'upper' benchmark bound & multiply Mvec ----#
-  #    Only done if user sets benchmark_aggregator != "none"
   if (benchmark_aggregator != "none") {
-    # The user wants an upper bound across the given rho_values.
-    # We do not scale within compute_bound() because the function below will handle scaling.
+    # Compute an upper bound across these rho_values
     bound_val <- compute_bound(
       betahat       = betahat,
       ci_lower      = ci_lower,
@@ -94,8 +106,8 @@ compute_sensitivity_intervals_smooth <- function(
       bound_type    = "upper",
       scale         = FALSE
     )
-    # Multiply Mvec by the newly found bound
-    Mvec <- Mvec * bound_val
+    # Multiply Mvec by that bound
+    Mvec <- Mvec_original * bound_val
   }
 
   #---- 4. Helper function to run createSensitivityResults with optional scaling ----#
@@ -107,7 +119,6 @@ compute_sensitivity_intervals_smooth <- function(
         # Not positive or numerically stable; skip or warn
         return(NULL)
       }
-
       scaleFactor <- 1 / sqrt(var_post)
 
       # Scale betahat, sigma, and Mvec
@@ -128,27 +139,28 @@ compute_sensitivity_intervals_smooth <- function(
           )
         },
         error = function(e) {
-          # If even with scaling it fails, return NULL
-          return(NULL)
+          return(NULL)  # If it fails, return NULL
         }
       )
 
-      # If successful, unscale the results (lb, ub, plus columns named M or Mbar)
+      # If successful, unscale the relevant columns
       if (!is.null(result)) {
         result$lb <- result$lb / scaleFactor
         result$ub <- result$ub / scaleFactor
 
         if ("M" %in% colnames(result)) {
+          # M was scaled, unscale it so user sees final M in original betahat units
           result$M <- result$M / scaleFactor
         }
         if ("Mbar" %in% colnames(result)) {
-          result$Mbar <- result$Mbar / scaleFactor
+          # If we already added Mbar, unscale it if needed, but see logic below
+          # We'll actually handle Mbar in the main loop to store original M.
         }
       }
       return(result)
 
     } else {
-      # Try no scaling; catch errors
+      # No scaling
       result <- tryCatch(
         {
           HonestDiD::createSensitivityResults(
@@ -162,7 +174,7 @@ compute_sensitivity_intervals_smooth <- function(
         },
         error = function(e) {
           message("Computation failed (possibly a non-positive-definite covariance). ",
-                  "Consider `scale = TRUE` or reviewing your inputs.")
+                  "Consider `scale = TRUE` or checking your inputs.")
           return(NULL)
         }
       )
@@ -170,7 +182,7 @@ compute_sensitivity_intervals_smooth <- function(
     }
   }
 
-  #---- 5. Methods to run: either "constant", "decay", or both ("all") ----#
+  #---- 5. Determine methods to run ----#
   methods_to_run <- if (method == "all") c("constant", "decay") else method
 
   intervals_list <- list()
@@ -194,15 +206,14 @@ compute_sensitivity_intervals_smooth <- function(
       if (!is.numeric(rho_values) || any(rho_values < -1) || any(rho_values > 1)) {
         stop("rho_values must be numeric with values between -1 and 1.")
       }
-      # Loop over rho
       for (rho in rho_values) {
+        # Construct covariance
         sigma <- construct_cov_matrix(variances = variances, rho = rho)
         T <- length(betahat)
         if (!all(dim(sigma) == c(T, T))) {
           stop("sigma must be a square matrix with dimensions equal to length(betahat).")
         }
 
-        # Attempt sensitivity with optional scaling
         delta_rm_results <- run_sensitivity_with_optional_scaling(
           betahat = betahat,
           sigma   = sigma,
@@ -211,8 +222,18 @@ compute_sensitivity_intervals_smooth <- function(
         )
 
         if (!is.null(delta_rm_results)) {
+          # Add method/parameter columns
           delta_rm_results$method    <- "constant"
           delta_rm_results$parameter <- rho
+
+          # Add "Mbar" if we have a column "M"
+          # and the row count matches length(Mvec) => each row is a separate M
+          if ("M" %in% colnames(delta_rm_results)) {
+            if (nrow(delta_rm_results) == length(Mvec)) {
+              delta_rm_results$Mbar <- Mvec_original
+            }
+          }
+
           intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
         } else {
           invalid_params[[length(invalid_params) + 1]] <- list(method = "constant", param = rho)
@@ -223,7 +244,6 @@ compute_sensitivity_intervals_smooth <- function(
       }
 
     } else if (current_method == "decay") {
-      # decay approach
       if (!all(decay_types %in% c("exponential", "linear"))) {
         stop("decay_types must be either 'exponential' or 'linear'.")
       }
@@ -231,7 +251,7 @@ compute_sensitivity_intervals_smooth <- function(
         stop("lambda_values must be non-negative.")
       }
 
-      # Loop over decay_types and lambdas
+      # Loop over decay
       for (decay_type in decay_types) {
         for (lambda in lambda_values) {
           sigma <- construct_cov_matrix_decay(
@@ -254,6 +274,13 @@ compute_sensitivity_intervals_smooth <- function(
           if (!is.null(delta_rm_results)) {
             delta_rm_results$method    <- paste0("decay_", decay_type)
             delta_rm_results$parameter <- lambda
+
+            if ("M" %in% colnames(delta_rm_results)) {
+              if (nrow(delta_rm_results) == length(Mvec)) {
+                delta_rm_results$Mbar <- Mvec_original
+              }
+            }
+
             intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
           } else {
             invalid_params[[length(invalid_params) + 1]] <-
@@ -285,7 +312,7 @@ compute_sensitivity_intervals_smooth <- function(
     narrowest_index <- which.min(combined_results$interval_width)
     narrowest_interval <- combined_results[narrowest_index, , drop = FALSE]
   } else {
-    warning("No valid intervals computed. Possibly all covariance matrices failed or the solver did not converge.")
+    warning("No valid intervals computed. Possibly covariance matrices failed or the solver did not converge.")
     combined_results  <- data.frame()
     widest_interval   <- data.frame()
     narrowest_interval<- data.frame()
@@ -299,7 +326,7 @@ compute_sensitivity_intervals_smooth <- function(
     ))
   }
 
-  #---- 8. Return result object ----#
+  #---- 8. Return final result ----#
   result <- list(
     widest_interval     = widest_interval,
     narrowest_interval  = narrowest_interval,
