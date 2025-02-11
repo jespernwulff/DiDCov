@@ -4,12 +4,10 @@
 \alias{construct_cov_matrix}
 \title{Construct Covariance Matrix with Specified Rho}
 \usage{
-construct_cov_matrix(years, variances, rho)
+construct_cov_matrix(variances, rho)
 }
 \arguments{
-\item{years}{A numeric vector of years.}
-
-\item{variances}{A numeric vector of variances corresponding to each year.}
+\item{variances}{A numeric vector of variances.}
 
 \item{rho}{A numeric value between -1 and 1 specifying the correlation coefficient to be used for all off-diagonal elements.}
 }
@@ -17,12 +15,11 @@ construct_cov_matrix(years, variances, rho)
 A covariance matrix.
 }
 \description{
-Constructs a covariance matrix based on provided years, variances, and a specified correlation coefficient (rho).
+Constructs a covariance matrix based on provided variances and a specified correlation coefficient (rho).
 }
 \examples{
 # Example usage
-years <- c(2008, 2009, 2010)
 variances <- c(0.0001, 0.0002, 0.00015)
-cov_matrix <- construct_cov_matrix(years, variances, rho = 0.5)
+cov_matrix <- construct_cov_matrix(variances, rho = 0.5)
 print(cov_matrix)
 }

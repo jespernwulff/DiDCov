@@ -25,7 +25,7 @@
 #' print(result$variances)
 #'
 #' # Using the variances with the covariance matrix function
-#' cov_matrix <- construct_cov_matrix(result$years, result$variances, rho = 0.5)
+#' cov_matrix <- construct_cov_matrix(result$variances, rho = 0.5)
 #' print(cov_matrix)
 #' @export
 compute_variances_from_ci <- function(years, effect_sizes, ci_lower, ci_upper, ci_level = 0.95) {

@@ -44,6 +44,6 @@ result <- compute_variances_from_ci(years, effect_sizes, ci_lower, ci_upper)
 print(result$variances)
 
 # Using the variances with the covariance matrix function
-cov_matrix <- construct_cov_matrix(result$years, result$variances, rho = 0.5)
+cov_matrix <- construct_cov_matrix(result$variances, rho = 0.5)
 print(cov_matrix)
 }

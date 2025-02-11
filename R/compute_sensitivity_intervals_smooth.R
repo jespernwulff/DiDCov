@@ -175,7 +175,6 @@ compute_sensitivity_intervals_smooth <- function(
       for (rho in rho_values) {
         # Construct covariance matrix
         sigma <- construct_cov_matrix(
-          years     = seq_along(betahat),
           variances = variances,
           rho       = rho
         )

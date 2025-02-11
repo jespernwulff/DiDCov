@@ -126,7 +126,7 @@ compute_sensitivity_intervals <- function(
       # (Optional) Validate rho_values here if desired
       for (rho in rho_values) {
         # Construct covariance matrix
-        sigma <- construct_cov_matrix(years, variances, rho)
+        sigma <- construct_cov_matrix(variances, rho)
 
         # Check if sigma is positive semi-definite
         if (!is_positive_semi_definite(sigma)) {
