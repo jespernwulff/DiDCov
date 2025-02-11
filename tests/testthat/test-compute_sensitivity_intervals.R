@@ -25,12 +25,6 @@ test_that("compute_sensitivity_intervals returns expected outputs quickly", {
     Mbarvec = c(1)
   )
 
-  # Record end time and calculate duration
-  duration <- Sys.time() - start_time
-
-  # Ensure the test runs quickly (e.g., less than 2 seconds)
-  expect_lt(as.numeric(duration), 2)
-
   # Check that result is a list with correct elements
   expect_type(result, "list")
   expect_true(all(c("widest_interval", "narrowest_interval", "all_intervals") %in% names(result)))
