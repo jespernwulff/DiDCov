@@ -5,16 +5,16 @@
 \title{Construct Covariance Matrix with Decay}
 \usage{
 construct_cov_matrix_decay(
-  years,
   variances,
+  time_diff_matrix,
   decay_type = "exponential",
   lambda
 )
 }
 \arguments{
-\item{years}{A numeric vector of years.}
+\item{variances}{A numeric vector of variances.}
 
-\item{variances}{A numeric vector of variances corresponding to each year.}
+\item{time_diff_matrix}{A numeric matrix representing the pairwise time differences or distances.}
 
 \item{decay_type}{A character string specifying the type of decay. Must be either "exponential" or "linear".}
 
@@ -24,20 +24,20 @@ construct_cov_matrix_decay(
 A covariance matrix.
 }
 \description{
-Constructs a covariance matrix based on provided years, variances, and a decay parameter.
+Constructs a covariance matrix based on provided variances, a decay parameter, and a distance matrix.
 The decay can be either "exponential" or "linear".
 }
 \examples{
 # Example usage with exponential decay
-years <- c(2000, 2001, 2002)
 variances <- c(1, 1, 1)
-cov_matrix <- construct_cov_matrix_decay(years, variances,
+time_diff_matrix <- matrix(c(0, 1, 2, 1, 0, 1, 2, 1, 0), nrow = 3)
+cov_matrix <- construct_cov_matrix_decay(variances, time_diff_matrix,
                                          decay_type = "exponential",
                                          lambda = 0.1)
 print(cov_matrix)
 
 # Example usage with linear decay
-cov_matrix_linear <- construct_cov_matrix_decay(years, variances,
+cov_matrix_linear <- construct_cov_matrix_decay(variances, time_diff_matrix,
                                                 decay_type = "linear",
                                                 lambda = 0.1)
 print(cov_matrix_linear)

@@ -64,14 +64,12 @@ compute_sensitivity_intervals_smooth <- function(
 
   #---- 2. Compute placeholder variances from confidence intervals ----#
   #    Note the change: pass `effect_sizes = betahat` instead of `betahat = betahat`.
-  variances_result <- compute_variances_from_ci(
-    years         = seq_along(betahat),
+  variances <- compute_variances_from_ci(
     effect_sizes  = betahat,
     ci_lower      = ci_lower,
     ci_upper      = ci_upper,
     ci_level      = ci_level
   )
-  variances <- variances_result$variances
 
   #---- 3. Helper function to run createSensitivityResults with optional scaling ----#
   run_sensitivity_with_optional_scaling <- function(betahat, sigma, Mvec, ...) {
@@ -219,7 +217,6 @@ compute_sensitivity_intervals_smooth <- function(
         for (lambda in lambda_values) {
           # Construct covariance matrix
           sigma <- construct_cov_matrix_decay(
-            years       = seq_along(betahat),
             variances   = variances,
             decay_type  = decay_type,
             lambda      = lambda
