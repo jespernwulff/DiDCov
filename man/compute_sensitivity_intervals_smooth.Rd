@@ -17,6 +17,7 @@ compute_sensitivity_intervals_smooth(
   ci_level = 0.95,
   Mvec = 0.02,
   scale = TRUE,
+  benchmark_aggregator = c("none", "smallest", "largest", "median"),
   ...
 )
 }
@@ -46,7 +47,13 @@ compute_sensitivity_intervals_smooth(
 \item{scale}{Logical flag indicating whether to apply scaling to \code{betahat},
 \code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).}
 
-\item{...}{Additional arguments passed to \code{HonestDiD::createSensitivityResults}.}
+\item{benchmark_aggregator}{Character in \code{c("none","smallest","largest","median")}.
+When not "none", this triggers a call to \code{compute_bound()} to obtain an \emph{upper}
+benchmark bound. The resulting numeric is multiplied into \code{Mvec} before passing to
+\code{createSensitivityResults()}. Defaults to \code{"none"}.}
+
+\item{...}{Additional arguments passed to \code{HonestDiD::createSensitivityResults}
+(e.g. \code{alpha} or \code{l_vec}).}
 }
 \value{
 A list containing:

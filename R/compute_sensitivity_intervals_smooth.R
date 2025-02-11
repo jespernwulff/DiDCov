@@ -15,7 +15,12 @@
 #' @param Mvec Numeric vector of smoothness parameters for smoothness restrictions. Defaults to \code{0.02}.
 #' @param scale Logical flag indicating whether to apply scaling to \code{betahat},
 #'   \code{sigma}, and \code{Mvec} to help with numerical stability (default \code{TRUE}).
-#' @param ... Additional arguments passed to \code{HonestDiD::createSensitivityResults}.
+#' @param benchmark_aggregator Character in \code{c("none","smallest","largest","median")}.
+#'   When not "none", this triggers a call to \code{compute_bound()} to obtain an \emph{upper}
+#'   benchmark bound. The resulting numeric is multiplied into \code{Mvec} before passing to
+#'   \code{createSensitivityResults()}. Defaults to \code{"none"}.
+#' @param ... Additional arguments passed to \code{HonestDiD::createSensitivityResults}
+#'   (e.g. \code{alpha} or \code{l_vec}).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -41,8 +46,11 @@ compute_sensitivity_intervals_smooth <- function(
     ci_level = 0.95,
     Mvec = 0.02,
     scale = TRUE,
+    benchmark_aggregator = c("none", "smallest", "largest", "median"),
     ...
 ) {
+  benchmark_aggregator <- match.arg(benchmark_aggregator)
+
   #---- 1. Input validation ----#
   n <- length(betahat)
   if (length(ci_lower) != n || length(ci_upper) != n) {
@@ -63,15 +71,34 @@ compute_sensitivity_intervals_smooth <- function(
   }
 
   #---- 2. Compute placeholder variances from confidence intervals ----#
-  #    Note the change: pass `effect_sizes = betahat` instead of `betahat = betahat`.
   variances <- compute_variances_from_ci(
-    effect_sizes  = betahat,
-    ci_lower      = ci_lower,
-    ci_upper      = ci_upper,
-    ci_level      = ci_level
+    effect_sizes = betahat,
+    ci_lower     = ci_lower,
+    ci_upper     = ci_upper,
+    ci_level     = ci_level
   )
 
-  #---- 3. Helper function to run createSensitivityResults with optional scaling ----#
+  #---- 3. [Optional] Compute an 'upper' benchmark bound & multiply Mvec ----#
+  #    Only done if user sets benchmark_aggregator != "none"
+  if (benchmark_aggregator != "none") {
+    # The user wants an upper bound across the given rho_values.
+    # We do not scale within compute_bound() because the function below will handle scaling.
+    bound_val <- compute_bound(
+      betahat       = betahat,
+      ci_lower      = ci_lower,
+      ci_upper      = ci_upper,
+      numPrePeriods = numPrePeriods,
+      rho_values    = rho_values,
+      ci_level      = ci_level,
+      aggregator    = benchmark_aggregator,  # "smallest","largest","median"
+      bound_type    = "upper",
+      scale         = FALSE
+    )
+    # Multiply Mvec by the newly found bound
+    Mvec <- Mvec * bound_val
+  }
+
+  #---- 4. Helper function to run createSensitivityResults with optional scaling ----#
   run_sensitivity_with_optional_scaling <- function(betahat, sigma, Mvec, ...) {
     if (scale) {
       # Attempt scaling based on variance of the first post-treatment period
@@ -106,12 +133,11 @@ compute_sensitivity_intervals_smooth <- function(
         }
       )
 
-      # If successful, unscale the results (lb, ub, and any columns named M or Mbar)
+      # If successful, unscale the results (lb, ub, plus columns named M or Mbar)
       if (!is.null(result)) {
         result$lb <- result$lb / scaleFactor
         result$ub <- result$ub / scaleFactor
 
-        # If "M" or "Mbar" columns exist in the result, unscale them as well.
         if ("M" %in% colnames(result)) {
           result$M <- result$M / scaleFactor
         }
@@ -135,8 +161,8 @@ compute_sensitivity_intervals_smooth <- function(
           )
         },
         error = function(e) {
-          message("Computation failed likely due to a very small variance. ",
-                  "Consider switching `scale = TRUE`.")
+          message("Computation failed (possibly a non-positive-definite covariance). ",
+                  "Consider `scale = TRUE` or reviewing your inputs.")
           return(NULL)
         }
       )
@@ -144,7 +170,7 @@ compute_sensitivity_intervals_smooth <- function(
     }
   }
 
-  #---- 4. Prepare to loop over methods/parameters ----#
+  #---- 5. Methods to run: either "constant", "decay", or both ("all") ----#
   methods_to_run <- if (method == "all") c("constant", "decay") else method
 
   intervals_list <- list()
@@ -162,27 +188,21 @@ compute_sensitivity_intervals_smooth <- function(
   pb <- txtProgressBar(min = 0, max = total_iterations, style = 3)
   progress_counter <- 0
 
-  #---- 5. Main loop ----#
+  #---- 6. Main loop over the chosen method(s) ----#
   for (current_method in methods_to_run) {
     if (current_method == "constant") {
       if (!is.numeric(rho_values) || any(rho_values < -1) || any(rho_values > 1)) {
         stop("rho_values must be numeric with values between -1 and 1.")
       }
-
       # Loop over rho
       for (rho in rho_values) {
-        # Construct covariance matrix
-        sigma <- construct_cov_matrix(
-          variances = variances,
-          rho       = rho
-        )
-        # Quick dimension check
+        sigma <- construct_cov_matrix(variances = variances, rho = rho)
         T <- length(betahat)
         if (!all(dim(sigma) == c(T, T))) {
           stop("sigma must be a square matrix with dimensions equal to length(betahat).")
         }
 
-        # Run the sensitivity analysis (with optional scaling)
+        # Attempt sensitivity with optional scaling
         delta_rm_results <- run_sensitivity_with_optional_scaling(
           betahat = betahat,
           sigma   = sigma,
@@ -191,12 +211,10 @@ compute_sensitivity_intervals_smooth <- function(
         )
 
         if (!is.null(delta_rm_results)) {
-          # Annotate results
-          delta_rm_results$method <- "constant"
+          delta_rm_results$method    <- "constant"
           delta_rm_results$parameter <- rho
           intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
         } else {
-          # Store invalid param if needed
           invalid_params[[length(invalid_params) + 1]] <- list(method = "constant", param = rho)
         }
 
@@ -205,6 +223,7 @@ compute_sensitivity_intervals_smooth <- function(
       }
 
     } else if (current_method == "decay") {
+      # decay approach
       if (!all(decay_types %in% c("exponential", "linear"))) {
         stop("decay_types must be either 'exponential' or 'linear'.")
       }
@@ -215,19 +234,16 @@ compute_sensitivity_intervals_smooth <- function(
       # Loop over decay_types and lambdas
       for (decay_type in decay_types) {
         for (lambda in lambda_values) {
-          # Construct covariance matrix
           sigma <- construct_cov_matrix_decay(
             variances   = variances,
             decay_type  = decay_type,
             lambda      = lambda
           )
-          # Quick dimension check
           T <- length(betahat)
           if (!all(dim(sigma) == c(T, T))) {
             stop("sigma must be a square matrix with dimensions equal to length(betahat).")
           }
 
-          # Run sensitivity analysis (with optional scaling)
           delta_rm_results <- run_sensitivity_with_optional_scaling(
             betahat = betahat,
             sigma   = sigma,
@@ -236,8 +252,7 @@ compute_sensitivity_intervals_smooth <- function(
           )
 
           if (!is.null(delta_rm_results)) {
-            # Annotate results
-            delta_rm_results$method <- paste0("decay_", decay_type)
+            delta_rm_results$method    <- paste0("decay_", decay_type)
             delta_rm_results$parameter <- lambda
             intervals_list[[length(intervals_list) + 1]] <- delta_rm_results
           } else {
@@ -257,23 +272,23 @@ compute_sensitivity_intervals_smooth <- function(
 
   close(pb)
 
-  #---- 6. Compile results ----#
+  #---- 7. Compile & finalize results ----#
   if (length(intervals_list) > 0) {
     combined_results <- do.call(rbind, intervals_list)
     combined_results$interval_width <- combined_results$ub - combined_results$lb
 
     # Widest interval
     widest_index <- which.max(combined_results$interval_width)
-    widest_interval <- combined_results[widest_index, ]
+    widest_interval <- combined_results[widest_index, , drop = FALSE]
 
     # Narrowest interval
     narrowest_index <- which.min(combined_results$interval_width)
-    narrowest_interval <- combined_results[narrowest_index, ]
+    narrowest_interval <- combined_results[narrowest_index, , drop = FALSE]
   } else {
     warning("No valid intervals computed. Possibly all covariance matrices failed or the solver did not converge.")
-    combined_results <- data.frame()
-    widest_interval <- data.frame()
-    narrowest_interval <- data.frame()
+    combined_results  <- data.frame()
+    widest_interval   <- data.frame()
+    narrowest_interval<- data.frame()
   }
 
   # Possibly warn about invalid parameters
@@ -284,7 +299,7 @@ compute_sensitivity_intervals_smooth <- function(
     ))
   }
 
-  #---- 7. Return result object ----#
+  #---- 8. Return result object ----#
   result <- list(
     widest_interval     = widest_interval,
     narrowest_interval  = narrowest_interval,
@@ -293,4 +308,5 @@ compute_sensitivity_intervals_smooth <- function(
   class(result) <- "sensitivity_intervals"
   return(result)
 }
+
 
