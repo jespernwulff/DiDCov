@@ -95,8 +95,7 @@ compute_sensitivity_intervals <- function(
   }
 
   # Compute variances from confidence intervals
-  variances_result <- compute_variances_from_ci(years, betahat, ci_lower, ci_upper, ci_level)
-  variances <- variances_result$variances
+  variances <- compute_variances_from_ci(betahat, ci_lower, ci_upper, ci_level)
 
   # Initialize list to store intervals
   intervals_list <- list()
