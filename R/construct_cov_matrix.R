@@ -31,7 +31,9 @@ construct_cov_matrix <- function(variances, rho) {
 
   # Construct the covariance matrix
   sd_vec <- sqrt(variances)
-  cov_matrix <- corr_matrix * (sd_vec %o% sd_vec)
+  sd_vec <- as.numeric(sd_vec)  # ensure 1D
+  D      <- diag(sd_vec)
+  cov_matrix <- D %*% corr_matrix %*% D
 
   # Adjust covariance matrix to be positive semi-definite
   cov_matrix <- as.matrix(nearPD(cov_matrix)$mat)
